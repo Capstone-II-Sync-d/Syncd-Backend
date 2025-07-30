@@ -33,7 +33,7 @@ const User = db.define("user", {
   },
   email: {
     type: DataTypes.STRING,
-    allowNull: true,
+    allowNull: false,
     unique: true,
     validate: {
       isEmail: true,
@@ -42,6 +42,7 @@ const User = db.define("user", {
   bio: {
     type: DataTypes.TEXT,
     allowNull: true,
+    defaultValue: null,
   },
   profilePicture: {
     type: DataTypes.STRING,
