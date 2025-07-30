@@ -1,0 +1,19 @@
+const { DataTypes } = require("sequelize");
+const db = require("./db");
+const bcrypt = require("bcrypt");
+
+const friend_request = db.define("friend_request", {
+  id: {
+    primaryKey: true,
+    allowNull: false,
+    autoIncrement: true,
+  },
+  sender_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  reciever_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+});
