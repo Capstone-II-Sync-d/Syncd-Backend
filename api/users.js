@@ -5,9 +5,9 @@ const { User, Business, FriendShip, Follow } = require("../database");
 // Import Sequelize operators
 const { Op } = require("sequelize");
 
-//User Profile Routing
-//|-----------------------------------------------------------------|
-
+//|---------------------------------------------------------------------------------------|
+//              **************|User Profile Routing|****************
+//|---------------------------------------------------------------------------------------|
 //Edit a users profile information
 router.patch("/user/:id", async (req, res) => {
   //Get user ID from url parameters
@@ -33,6 +33,7 @@ router.patch("/user/:id", async (req, res) => {
   }
 });
 
+//|-----------------------------------------------------------------|
 //Delete a users profile
 router.delete("/user/:id", async (req, res) => {
   //Get user ID from url parameters
@@ -51,6 +52,7 @@ router.delete("/user/:id", async (req, res) => {
   }
 });
 
+//|-----------------------------------------------------------------|
 //Get all friendships of a user
 router.get("/user/:id/friends", async (req, res) => {
   //Get user ID from url parameters
@@ -91,6 +93,7 @@ router.get("/user/:id/friends", async (req, res) => {
   }
 });
 
+//|-----------------------------------------------------------------|
 //Get all businesses made by a user
 router.get("/user/business/owner/:id", async (req, res) => {
   //Get user ID from url parameters
@@ -109,6 +112,7 @@ router.get("/user/business/owner/:id", async (req, res) => {
   }
 });
 
+//|-----------------------------------------------------------------|
 //Get all businesses a user follows
 router.post("/user/following/:id", async (req, res) => {
   //Get user ID from url parameters
@@ -129,6 +133,104 @@ router.post("/user/following/:id", async (req, res) => {
       .json({ error: `Failed to fetch businesses user ${userId} follows` });
   }
 });
-
 //|---------------------------------------------------------------------------------|
-//Business Profile Routing
+//        **************|Business Profile Routing|****************
+//|---------------------------------------------------------------------------------|
+
+// Create a business
+router.post("/business/:userId", async (req, res) => {
+  try {
+    const ownerId = req.params.userId; // Get the user ID from the URL
+    const businessInfo = req.body; // Get business data from request body
+
+    // Attach the ownerId to the business info
+    const newBusiness = await Business.create({
+      ...businessInfo,
+      ownerId: parseInt(ownerId),
+    });
+
+    res.status(201).json(newBusiness); // Respond with the newly created business
+  } catch (error) {
+    console.error("Error creating business:", error);
+    res.status(500).json({ error: "Failed to create business" });
+  }
+});
+
+//|-----------------------------------------------------------------|
+//Get a specific business by id
+router.get("/business/:id", async (req, res) => {
+  //Get the id from URL
+  const businessId = req.params.id;
+  try {
+    //Find the specific business with that id
+    const business = await Business.findByPk(businessId);
+
+    res.status(200).json(business);
+  } catch (error) {
+    console.error("Error fetching business:", error);
+    res.status(500).json({ error: "Failed to fetch business" });
+  }
+});
+
+//|-----------------------------------------------------------------|
+//Edit a business profile information
+router.patch("/business/:id", async (req, res) => {
+  //Get the id from URL
+  const businessId = req.params.id;
+  try {
+    //Get all of the information they are trying to edit
+    const businessInfoChange = req.body;
+    //Find the specific business with that id
+    const business = await Business.findByPk(businessId);
+
+    //Update the business with the edited information
+    await business.update(businessInfoChange);
+
+    res.status(200).json(business);
+  } catch (error) {
+    console.error("Error editing business:", error);
+    res.status(500).json({ error: "Failed to edit business" });
+  }
+});
+
+//|-----------------------------------------------------------------|
+//Delete a business profile
+router.delete("/business", async (req, res) => {
+  //Get the id from URL
+  const businessId = req.params.id;
+  try {
+    //Find the specific business with that id
+    const business = await Business.findByPk(businessId);
+
+    //Delete the business
+    await business.delete();
+
+    res.status(200);
+  } catch (error) {
+    console.error("Error deleting business:", error);
+    res.status(500).json({ error: "Failed to delete business" });
+  }
+});
+
+//|-----------------------------------------------------------------|
+//Get all the followers of a business
+router.get("/business/:id", async (req, res) => {
+  //Get the id from URL
+  const business_id = req.params.id;
+  try {
+    //Find the specific business with that id
+    const followers = await Business.findAll({
+      where: { businessId: business_id },
+      include: User,
+    });
+
+    res.status(200).json(followers);
+  } catch (error) {
+    console.error("Error fetching all followers:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to fetch all followers of the business" });
+  }
+});
+
+//|-------------------------------------------------------------------|
