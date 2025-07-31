@@ -1,5 +1,5 @@
 const db = require("./db");
-const { User, Business } = require("./index");
+const { User, Business, Follow } = require("./index");
 
 const seed = async () => {
   try {
@@ -67,6 +67,62 @@ const seed = async () => {
         email: "lilat@example.com",
         passwordHash: User.hashPassword("Lila#7890"),
       },
+      {
+        firstName: "Nina",
+        lastName: "Patel",
+        username: "npatel",
+        email: "npatel@example.com",
+        passwordHash: User.hashPassword("NinaPass!9"),
+      },
+      {
+        firstName: "Omar",
+        lastName: "Hassan",
+        username: "omarh",
+        email: "omarh@example.com",
+        passwordHash: User.hashPassword("OmarSecure88"),
+      },
+      {
+        firstName: "Chloe",
+        lastName: "Reed",
+        username: "chloer",
+        email: "chloer@example.com",
+        passwordHash: User.hashPassword("ChloeReed@22"),
+      },
+      {
+        firstName: "Leo",
+        lastName: "Nguyen",
+        username: "leong",
+        email: "leong@example.com",
+        passwordHash: User.hashPassword("LeoNguyen77"),
+      },
+      {
+        firstName: "Isabella",
+        lastName: "Martinez",
+        username: "isabellam",
+        email: "isabellam@example.com",
+        passwordHash: User.hashPassword("IsaMartinez!2025"),
+      },
+      {
+        firstName: "Mateo",
+        lastName: "Silva",
+        username: "mateos",
+        email: "mateos@example.com",
+        passwordHash: User.hashPassword("SilvaMateo09"),
+      },
+      {
+        firstName: "Grace",
+        lastName: "Liu",
+        username: "graceliu",
+        email: "graceliu@example.com",
+        passwordHash: User.hashPassword("Grace_Liu123"),
+      },
+      {
+        firstName: "Derek",
+        lastName: "Foster",
+        username: "dfoster",
+        email: "dfoster@example.com",
+        passwordHash: User.hashPassword("DerekF!45"),
+      },
     ]);
 
     console.log(`👤 Created ${users.length} users`);
@@ -117,6 +173,49 @@ const seed = async () => {
     ]);
 
     console.log(`🏢 Created ${businesses.length} businesses`);
+
+    const follows = await Follow.bulkCreate([
+      { businessId: 1, userId: 3 },
+      { businessId: 1, userId: 2 },
+      { businessId: 1, userId: 5 },
+      { businessId: 1, userId: 9 },
+      { businessId: 1, userId: 13 },
+
+      { businessId: 2, userId: 1 },
+      { businessId: 2, userId: 4 },
+      { businessId: 2, userId: 10 },
+      { businessId: 2, userId: 12 },
+
+      { businessId: 3, userId: 5 },
+      { businessId: 3, userId: 2 },
+      { businessId: 3, userId: 6 },
+      { businessId: 3, userId: 3 },
+      { businessId: 3, userId: 9 },
+      { businessId: 3, userId: 12 },
+
+      { businessId: 4, userId: 2 },
+      { businessId: 4, userId: 1 },
+      { businessId: 4, userId: 3 },
+      { businessId: 4, userId: 10 },
+      { businessId: 4, userId: 13 },
+      
+      { businessId: 5, userId: 3 },
+      { businessId: 5, userId: 4 },
+      { businessId: 5, userId: 6 },
+      { businessId: 5, userId: 7 },
+      { businessId: 5, userId: 1 },
+      { businessId: 5, userId: 11 },
+      { businessId: 5, userId: 12 },
+
+      { businessId: 6, userId: 7 },
+      { businessId: 6, userId: 8 },
+      { businessId: 6, userId: 3 },
+      { businessId: 6, userId: 10 },
+      { businessId: 6, userId: 13 },
+      { businessId: 6, userId: 14 },
+    ]);
+
+    console.log(`👀 Created ${follows.length} follows`);
 
     console.log("🌱 Seeded the database");
   } catch (error) {
