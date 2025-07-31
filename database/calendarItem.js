@@ -44,7 +44,7 @@ const CalendarItem = db.define("calendar_item", {
     allowNull: true,
   },
   itemType: {
-    type: DataTypes.ENUM[("personal", "event")],
+    type: DataTypes.ENUM(["personal", "event"]),
     allowNull: false,
     validate: {
       notPersonalForBusiness(value) {
@@ -54,7 +54,7 @@ const CalendarItem = db.define("calendar_item", {
     },
   },
   privacy: {
-    type: DataTypes.ENUM[("public", "private")],
+    type: DataTypes.ENUM(["public", "private"]),
     defaultValue: "private",
     allowNull: false,
   },
