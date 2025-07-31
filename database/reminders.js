@@ -2,6 +2,11 @@ const { DataTypes } = require("sequelize");
 const db = require("./db");
 
 const Reminder = db.define("reminder", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   timeValue: {
     type: DataTypes.INTEGER,
     validate: {
