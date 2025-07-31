@@ -22,7 +22,7 @@ User.hasMany(CalendarItem, {
 });
 CalendarItem.belongsTo(User, {
   foreignKey: 'userId'
-})
+});
 
 // -------------------------------------------
 // Business has calendar items
