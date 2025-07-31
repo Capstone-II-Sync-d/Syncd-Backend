@@ -13,7 +13,7 @@ const FriendShip = db.define("friendship", {
     primaryKey: true,
   },
   status: {
-    type: DataTypes.ENUM[("pending1", "pending2", "accepted")],
+    type: DataTypes.ENUM(["pending1", "pending2", "accepted"]),
     allowNull: false,
   },
 }, {
