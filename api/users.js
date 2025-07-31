@@ -23,6 +23,7 @@ router.patch("/user-edit/:id", async (req, res) => {
 
     //Updates the user profile with body sent in.
     await user.update(userProfile);
+    res.status(200).json("Profile has successfully updated");
   } catch (error) {
     console.error("Error editing user profile:", error);
     res.status(500).json({ error: "Failed to edit user profile" });
@@ -40,6 +41,7 @@ router.delete("/user-delete/:id", async (req, res) => {
 
     //Deletes that user
     await user.delete();
+    res.status(200).json("User has successfully been deleted");
   } catch (error) {
     console.error("Error deleting user:", error);
     res.status(500).json({ error: "Failed to delete user" });
@@ -53,12 +55,14 @@ router.get("/user-friendShip/:id", async (req, res) => {
     const userId = req.params.id;
 
     const friends = await FriendShip.findAll({
-      [Op.or]: [
-        {
-          user1: userId,
-          user2: userId,
-        },
-      ],
+      where: {
+        [Op.or]: [
+          {
+            user1: userId,
+            user2: userId,
+          },
+        ],
+      },
     });
     res.status(200).json(friends);
   } catch (error) {
@@ -68,15 +72,21 @@ router.get("/user-friendShip/:id", async (req, res) => {
 });
 
 //Get all businesses made by a user
-router.post("/", async (req, res) => {
+router.get("/user-businesseses-made/:id", async (req, res) => {
   try {
+    //Get user ID from url parameters
+    const userId = req.params.id;
+
+    const businesses = Business.findAll({ where: { ownerId: userId } });
+
+    res.status(200).json(businesses);
   } catch (error) {
     console.error("Error detching businesses made by user:", error);
-    res.status(500).json({ error: "Failed to fetch businesses" });
+    res.status(500).json({ error: "Failed to fetch businesses made by user" });
   }
 });
 
 //Get all businesses a user follows
-router.post("/", async (req, res) => {});
+router.post("/user-follows/:id", async (req, res) => {});
 
 //Business Profile Routing
