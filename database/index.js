@@ -29,7 +29,7 @@ CalendarItem.belongsTo(User, {
 Business.hasMany(CalendarItem, {
   foreignKey: 'businessId'
 });
-CalendarItem.belongsTo(User, {
+CalendarItem.belongsTo(Business, {
   foreignKey: "businessId",
 });
 
