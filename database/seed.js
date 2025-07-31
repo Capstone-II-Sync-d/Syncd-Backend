@@ -1,5 +1,5 @@
 const db = require("./db");
-const { User } = require("./index");
+const { User, Business } = require("./index");
 
 const seed = async () => {
   try {
@@ -44,35 +44,79 @@ const seed = async () => {
         lastName: "Doe",
         username: "johndoe92",
         email: "johndoe92@example.com",
-        passwordHash: User.hashPassword("securePass123")
+        passwordHash: User.hashPassword("securePass123"),
       },
       {
         firstName: "Maria",
         lastName: "Gomez",
         username: "mariag",
         email: "mariag@example.com",
-        passwordHash: User.hashPassword("mariaSecret!45")
+        passwordHash: User.hashPassword("mariaSecret!45"),
       },
       {
         firstName: "Akira",
         lastName: "Tanaka",
         username: "akira.t",
         email: "akira.t@example.com",
-        passwordHash: User.hashPassword("T@naka2025")
+        passwordHash: User.hashPassword("T@naka2025"),
       },
       {
         firstName: "Lila",
         lastName: "Thompson",
         username: "lilat",
         email: "lilat@example.com",
-        passwordHash: User.hashPassword("Lila#7890")
-      }
+        passwordHash: User.hashPassword("Lila#7890"),
+      },
     ]);
 
     console.log(`👤 Created ${users.length} users`);
 
-    // Create more seed data here once you've created your models
-    // Seed files are a great way to test your database schema!
+    const businesses = await Business.bulkCreate([
+      {
+        name: "Green Leaf Café",
+        email: "contact@greenleafcafe.com",
+        bio: "A cozy plant-based café offering locally sourced meals and specialty drinks.",
+        category: "Restaurant",
+        ownerId: 3,
+      },
+      {
+        name: "Pixel Forge Studio",
+        email: "hello@pixelforge.io",
+        bio: "Creative digital design agency specializing in branding, UI/UX, and web development.",
+        category: "Design",
+        ownerId: 1,
+      },
+      {
+        name: "Urban Threads",
+        email: "info@urbanthreads.shop",
+        bio: "Modern streetwear brand bringing bold fashion to everyday wear.",
+        category: "Retail",
+        ownerId: 5,
+      },
+      {
+        name: "MindSpring Therapy",
+        email: "support@mindspringtherapy.org",
+        bio: "Licensed counselors offering mental health support both in-person and online.",
+        category: "Healthcare",
+        ownerId: 2,
+      },
+      {
+        name: "Summit Climb Co.",
+        email: "contact@summitclimbco.com",
+        bio: "Indoor climbing gym and outdoor adventure gear store.",
+        category: "Fitness",
+        ownerId: 3,
+      },
+      {
+        name: "Bloom & Root",
+        email: "team@bloomandroot.com",
+        bio: "Boutique plant shop with curated greenery and home decor accessories.",
+        category: "Retail",
+        ownerId: 7,
+      },
+    ]);
+
+    console.log(`🏢 Created ${businesses.length} businesses`);
 
     console.log("🌱 Seeded the database");
   } catch (error) {
