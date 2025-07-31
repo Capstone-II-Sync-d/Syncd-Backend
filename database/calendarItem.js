@@ -13,9 +13,23 @@ const CalendarItem = db.define("calendar_item", {
   },
   description: {
     type: DataTypes.STRING,
+    allowNull: true,
+    validate: {
+      notNullForEvent(value) {
+        if (value === null && this.itemType !== "personal")
+          throw new Error("Decription cannot be null unless it's a personal calendar item");
+      }
+    },
   },
   location: {
     type: DataTypes.STRING,
+    allowNull: true,
+    validate: {
+      notNullForEvent(value) {
+        if (value === null && this.itemType !== "personal" && this.privacy !== "private")
+          throw new Error("Location cannot be null unless it's a private personal calendar item");
+      }
+    },
   },
   start: {
     type: DataTypes.DATE,
@@ -32,6 +46,12 @@ const CalendarItem = db.define("calendar_item", {
   itemType: {
     type: DataTypes.ENUM[("personal", "event")],
     allowNull: false,
+    validate: {
+      notPersonalForBusiness(value) {
+        if (this.businessId !== null && value === "personal")
+          throw new Error("Item Type cannot be 'personal' for businesses");
+      }
+    },
   },
   privacy: {
     type: DataTypes.ENUM[("public", "private")],
@@ -40,9 +60,12 @@ const CalendarItem = db.define("calendar_item", {
   },
   businessId: {
     type: DataTypes.INTEGER,
-    references: {
-      model: "businesses",
-      key: "id",
+    allowNull: true,
+    validate: {
+      notNullForEvent(value) {
+        if (value === null && this.itemType !== "personal")
+          throw new Error("BusinessID cannot be null unless it's a personal calendar item");
+      }
     },
   },
   userId: {
