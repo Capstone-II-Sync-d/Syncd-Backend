@@ -3,7 +3,7 @@ const User = require("./user");
 const Business = require("./business");
 const CalendarItem = require("./calendarItem");
 const FriendShip = require("./friendship");
-const Follower = require("./follower");
+const Follow = require("./follow");
 const Attendee = require("./attendee");
 
 // -------------- Associations -----------------//
@@ -60,11 +60,11 @@ FriendShip.belongsTo(User, {
 });
 
 //------------------------------------------
-// Business has followers
-Business.hasMany(Follower, {
+// Business has follows
+Business.hasMany(Follow, {
   foreignKey: 'businessId'
 });
-Follower.belongsTo(Business, {
+Follow.belongsTo(Business, {
   foreignKey: 'businessId'
 });
 
@@ -74,5 +74,5 @@ module.exports = {
   Business,
   CalendarItem,
   FriendShip,
-  Follower,
+  Follow,
 };
