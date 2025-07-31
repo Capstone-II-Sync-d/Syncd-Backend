@@ -9,7 +9,9 @@ const { Op } = require("sequelize");
 //|-----------------------------------------------------------------|
 
 //Edit a users profile information
-router.patch("/user-edit/:id", async (req, res) => {
+router.patch("/user/:id", async (req, res) => {
+  //Get user ID from url parameters
+  const userId = req.params.id;
   try {
     //Get user ID from url parameters
     const userId = req.params.id;
@@ -27,16 +29,15 @@ router.patch("/user-edit/:id", async (req, res) => {
     res.status(200).json("Profile has successfully updated");
   } catch (error) {
     console.error("Error editing user profile:", error);
-    res.status(500).json({ error: "Failed to edit user profile" });
+    res.status(500).json({ error: `Failed to edit user ${userId} profile` });
   }
 });
 
 //Delete a users profile
-router.delete("/user-delete/:id", async (req, res) => {
+router.delete("/user/:id", async (req, res) => {
+  //Get user ID from url parameters
+  const userId = req.params.id;
   try {
-    //Get user ID from url parameters
-    const userId = req.params.id;
-
     //Find the user with the id inside url params
     const user = await User.findByPk(userId);
 
@@ -46,16 +47,15 @@ router.delete("/user-delete/:id", async (req, res) => {
     res.status(200).json("User has successfully been deleted");
   } catch (error) {
     console.error("Error deleting user:", error);
-    res.status(500).json({ error: "Failed to delete user" });
+    res.status(500).json({ error: `Failed to delete user ${userId}` });
   }
 });
 
 //Get all friendships of a user
-router.get("/user-friendShip/:id", async (req, res) => {
+router.get("/user/:id/friends", async (req, res) => {
+  //Get user ID from url parameters
+  const userId = req.params.id;
   try {
-    //Get user ID from url parameters
-    const userId = req.params.id;
-
     //Find all friend of that specific user
     const friendsConnected = await FriendShip.findAll({
       where: {
@@ -67,13 +67,13 @@ router.get("/user-friendShip/:id", async (req, res) => {
           },
         ],
       },
-      //Includes
+      // Loads user details for both people in the friendship
       include: [
         { model: User, as: "primary" },
         { model: User, as: "secondary" },
       ],
     });
-
+    //maps through friendships that we gained to find the friend of that specific user
     const friends = friendsConnected.map((friendship) => {
       if (friendship.user1 === userId) {
         return friendship.secondary;
@@ -85,12 +85,14 @@ router.get("/user-friendShip/:id", async (req, res) => {
     res.status(200).json(friends);
   } catch (error) {
     console.error("Error fetching friends:", error);
-    res.status(500).json({ error: "Failed to fetch friends" });
+    res
+      .status(500)
+      .json({ error: `Failed to fetch friends of user ${userId}` });
   }
 });
 
 //Get all businesses made by a user
-router.get("/user-businesseses-made/:id", async (req, res) => {
+router.get("/user/business/owner/:id", async (req, res) => {
   //Get user ID from url parameters
   const userId = req.params.id;
   try {
@@ -108,14 +110,13 @@ router.get("/user-businesseses-made/:id", async (req, res) => {
 });
 
 //Get all businesses a user follows
-router.post("/user-follows/:id", async (req, res) => {
+router.post("/user/following/:id", async (req, res) => {
   //Get user ID from url parameters
+  const userId = req.params.id;
   try {
-    const user_id = req.params.id;
-
     //Get all Follows with a specific User
     const businessFollowing = Follow.findAll({
-      where: { userId: user_id },
+      where: { userId: userId },
       include: Business,
     });
 
@@ -125,7 +126,7 @@ router.post("/user-follows/:id", async (req, res) => {
     console.error("Error fetching businesses a user follows:", error);
     res
       .status(500)
-      .json({ error: "Failed to fetch businesses a user follows" });
+      .json({ error: `Failed to fetch businesses user ${userId} follows` });
   }
 });
 
