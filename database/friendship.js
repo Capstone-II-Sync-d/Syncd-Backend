@@ -13,8 +13,19 @@ const FriendShip = db.define("friendship", {
     primaryKey: true,
   },
   status: {
-    type: DataTypes.ENUM[("pending1", "pending2", "accepted")],
+    type: DataTypes.ENUM(["pending1", "pending2", "accepted"]),
     allowNull: false,
+  },
+}, {
+  validate: {
+    idsInOrder() {
+      if (this.user1 > this.user2)
+        throw new Error("ID of user1 must be smaller than the ID of user2");
+    },
+    notSelfFriendship() {
+      if (this.user1 === this.user2)
+        throw new Error("A user cannot have a friendship with themselves");
+    },
   },
 });
 

@@ -1,7 +1,7 @@
 const { DataTypes } = require("sequelize");
 const db = require("./db");
 
-const Follower = db.define("follower", {
+const Follow = db.define("follow", {
   businessId: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -14,4 +14,4 @@ const Follower = db.define("follower", {
   },
 });
 
-module.exports = Follower;
+module.exports = Follow;
