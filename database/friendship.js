@@ -12,6 +12,10 @@ const Friend = db.define("friend", {
     allowNull: false,
     primaryKey: true,
   },
+  status: {
+    type: DataTypes.ENUM[("pending1", "pending2", "accepted")],
+    allowNull: false,
+  },
 });
 
 module.exports = Friend;
