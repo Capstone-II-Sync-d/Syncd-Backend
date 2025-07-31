@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 //Importing models needed
-const { User, Business, FriendShip, Follow } = reuire("../database");
+const { User, Business, FriendShip, Follow } = require("../database");
 // Import Sequelize operators
 const { Op } = require("sequelize");
 
@@ -57,7 +57,7 @@ router.get("/user-friendShip/:id", async (req, res) => {
     const userId = req.params.id;
 
     //Find all friend of that specific user
-    const friends = await FriendShip.findAll({
+    const friendsConnected = await FriendShip.findAll({
       where: {
         //or operator in express to check for any friendship where user1 OR user2 has that specific userId
         [Op.or]: [
@@ -67,38 +67,66 @@ router.get("/user-friendShip/:id", async (req, res) => {
           },
         ],
       },
+      //Includes
+      include: [
+        { model: User, as: "primary" },
+        { model: User, as: "secondary" },
+      ],
+    });
+
+    const friends = friendsConnected.map((friendship) => {
+      if (friendship.user1 === userId) {
+        return friendship.secondary;
+      } else if (friendship.user2 === userId) {
+        return friendship.primary;
+      }
     });
     //Send back status of 200 if everything goes through and send the friends of that user
     res.status(200).json(friends);
   } catch (error) {
-    console.error("Error detching friendships:", error);
-    res.status(500).json({ error: "Failed to fetch friendships" });
+    console.error("Error fetching friends:", error);
+    res.status(500).json({ error: "Failed to fetch friends" });
   }
 });
 
 //Get all businesses made by a user
 router.get("/user-businesseses-made/:id", async (req, res) => {
+  //Get user ID from url parameters
+  const userId = req.params.id;
   try {
-    //Get user ID from url parameters
-    const userId = req.params.id;
-
     //Find all business by this owner
     const businesses = Business.findAll({ where: { ownerId: userId } });
 
     //Send back status of 200 if everything goes through and send the friends of that user
     res.status(200).json(businesses);
   } catch (error) {
-    console.error("Error detching businesses made by user:", error);
-    res.status(500).json({ error: "Failed to fetch businesses made by user" });
+    console.error("Error fetching businesses made by user:", error);
+    res
+      .status(500)
+      .json({ error: `Failed to fetch businesses made by user ${userId}` });
   }
 });
 
 //Get all businesses a user follows
 router.post("/user-follows/:id", async (req, res) => {
   //Get user ID from url parameters
-  const user_id = req.params.id;
+  try {
+    const user_id = req.params.id;
 
-  const businessFollowing = Follow.findAll({ where: { userId: user_id } });
+    //Get all Follows with a specific User
+    const businessFollowing = Follow.findAll({
+      where: { userId: user_id },
+      include: Business,
+    });
+
+    //Send back status of 200 if everything goes through and send the friends of that user
+    res.status(200).json(businessFollowing);
+  } catch (error) {
+    console.error("Error fetching businesses a user follows:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to fetch businesses a user follows" });
+  }
 });
 
 //|---------------------------------------------------------------------------------|
