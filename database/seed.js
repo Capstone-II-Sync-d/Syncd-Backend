@@ -1,5 +1,5 @@
 const db = require("./db");
-const { User, Business, Follow } = require("./index");
+const { User, Business, Follow, FriendShip } = require("./index");
 
 const seed = async () => {
   try {
@@ -216,6 +216,28 @@ const seed = async () => {
     ]);
 
     console.log(`👀 Created ${follows.length} follows`);
+
+    const friendships = await FriendShip.bulkCreate([
+      { user1: 1, user2: 2, status: "accepted" },
+      { user1: 1, user2: 3, status: "accepted" },
+      { user1: 1, user2: 4, status: "accepted" },
+      { user1: 2, user2: 3, status: "accepted" },
+      { user1: 2, user2: 4, status: "accepted" },
+      { user1: 3, user2: 4, status: "accepted" },
+
+      { user1: 5, user2: 6, status: "pending1" },
+      { user1: 5, user2: 7, status: "pending2" },
+      { user1: 6, user2: 8, status: "accepted" },
+
+      { user1: 9, user2: 10, status: "accepted" },
+      { user1: 9, user2: 11, status: "pending2" },
+      { user1: 10, user2: 12, status: "pending1" },
+
+      { user1: 13, user2: 14, status: "accepted" },
+      { user1: 14, user2: 15, status: "accepted" }
+    ]);
+
+    console.log(`🫂  Created ${friendships.length} friendships`);
 
     console.log("🌱 Seeded the database");
   } catch (error) {
