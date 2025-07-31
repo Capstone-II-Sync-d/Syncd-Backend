@@ -1,7 +1,7 @@
 const { DataTypes } = require("sequelize");
 const db = require("./db");
 
-const Friend = db.define("friend", {
+const FriendShip = db.define("friendship", {
   user1: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -18,4 +18,4 @@ const Friend = db.define("friend", {
   },
 });
 
-module.exports = Friend;
+module.exports = FriendShip;
