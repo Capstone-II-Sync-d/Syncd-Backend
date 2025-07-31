@@ -68,6 +68,15 @@ Follow.belongsTo(Business, {
   foreignKey: 'businessId'
 });
 
+//------------------------------------------
+// User is a follower
+User.hasMany(Follow, {
+  foreignKey: 'userId'
+});
+Follow.belongsTo(User, {
+  foreignKey: 'userId'
+});
+
 module.exports = {
   db,
   User,
