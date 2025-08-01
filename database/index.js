@@ -6,6 +6,7 @@ const FriendShip = require("./friendship");
 const Follow = require("./follow");
 const Attendee = require("./attendee");
 const Event = require("./event");
+const Reminder = require("./reminders");
 
 // -------------- Associations -----------------//
 // User owns a business
@@ -95,4 +96,6 @@ module.exports = {
   Event,
   FriendShip,
   Follow,
+  Attendee,
+  Reminder,
 };
