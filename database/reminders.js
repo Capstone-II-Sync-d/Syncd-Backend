@@ -18,7 +18,7 @@ const Reminder = db.define("reminder", {
     },
   },
   timeScale: {
-    type: DataTypes.ENUM[("minutes", "hours", "days", "weeks")],
+    type: DataTypes.ENUM(["minutes", "hours", "days", "weeks"]),
   },
   calendarItemId: {
     type: DataTypes.INTEGER,
