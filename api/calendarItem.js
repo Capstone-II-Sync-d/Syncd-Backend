@@ -28,6 +28,7 @@ router.get("/user/:id/calendaritems", async (req, res) => {
       // Sort by start time (earliest first)
       order: [["start", "ASC"]],
     });
+
     // Send success response if everything works and send back the user's calendar items
     res.status(200).json(userCalendarItems);
   } catch (error) {
@@ -49,10 +50,12 @@ router.get("/calendaritems/:itemId", async (req, res) => {
       // Filter so we only recieve this specific item
       where: { id: itemId },
     });
+
     // Check if calendar item was found, send error message if !found
     if (!calendarItem) {
       return res.status(404).json({ error: "Calendar item not found" });
     }
+
     // Send success if everything is good and return the calendar item
     res.status(200).json(calendarItem);
   } catch (error) {
@@ -63,7 +66,26 @@ router.get("/calendaritems/:itemId", async (req, res) => {
 
 //|-----------------------------------------------------------------|
 // Create a new calendar item for a user
-router.post("usr");
+router.post("/user/:id/calendaritems", async (req, res) => {
+  // Get user id from path
+  const userId = req.params.id;
+  try {
+    // Get calendar event infomration from request body
+    const calendarItemData = req.body;
+    // Create new calendar event with the user id attached
+    const newCalendarItem = await CalendarItem.create({
+      ...calendarItemData,
+      userId: parseInt(userId),
+    });
+
+    // Return success message with the  new calendar item
+    res.status(201).json(newCalendarItem);
+  } catch (error) {
+    console.error("Error creating calendar item: ", error);
+    res.status(500).json({ error: "Failed to create calendar item" });
+  }
+});
+
 //|-----------------------------------------------------------------|
 // Edit a user calendar item by id
 
