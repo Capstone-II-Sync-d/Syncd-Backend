@@ -1,5 +1,14 @@
 const db = require("./db");
-const { User, Business, Follow, FriendShip, CalendarItem, Event, Attendee } = require("./index");
+const {
+  User,
+  Business,
+  Follow,
+  FriendShip,
+  CalendarItem,
+  Event,
+  Attendee,
+  Reminder
+} = require("./index");
 
 const seed = async () => {
   try {
@@ -584,6 +593,63 @@ const seed = async () => {
     ]);
 
     console.log(`👥 Created ${attendees.length} attendees`);
+
+    const reminders = await Reminder.bulkCreate([
+      // User 1 — attending 1, 2, 6
+      { timeValue: 30, timeScale: "minutes", calendarItemId: 1, ownerId: 1 },
+      { timeValue: 2, timeScale: "hours", calendarItemId: 2, ownerId: 1 },
+      { timeValue: 2, timeScale: "days", calendarItemId: 6, ownerId: 1 },
+
+      // User 2 — attending 1, 2, 3, 5, 9
+      { timeValue: 1, timeScale: "days", calendarItemId: 1, ownerId: 2 },
+      { timeValue: 2, timeScale: "hours", calendarItemId: 2, ownerId: 2 },
+      { timeValue: 2, timeScale: "hours", calendarItemId: 3, ownerId: 2 },
+      { timeValue: 30, timeScale: "minutes", calendarItemId: 5, ownerId: 2 },
+      { timeValue: 1, timeScale: "hours", calendarItemId: 9, ownerId: 2 },
+
+      // User 3 — attending 1, 5, 6, 9
+      { timeValue: 30, timeScale: "minutes", calendarItemId: 1, ownerId: 3 },
+      { timeValue: 1, timeScale: "hours", calendarItemId: 5, ownerId: 3 },
+      { timeValue: 1, timeScale: "days", calendarItemId: 6, ownerId: 3 },
+      { timeValue: 15, timeScale: "minutes", calendarItemId: 9, ownerId: 3 },
+
+      // User 8 — attending 1, 3, 9; owns 4
+      { timeValue: 15, timeScale: "minutes", calendarItemId: 1, ownerId: 8 },
+      { timeValue: 1, timeScale: "hours", calendarItemId: 3, ownerId: 8 },
+      { timeValue: 30, timeScale: "minutes", calendarItemId: 9, ownerId: 8 },
+      { timeValue: 1, timeScale: "hours", calendarItemId: 4, ownerId: 8 },
+
+      // User 9 — attending 2, 6, 14, 17; owns 10, 20
+      { timeValue: 2, timeScale: "hours", calendarItemId: 10, ownerId: 9 },
+      { timeValue: 1, timeScale: "hours", calendarItemId: 20, ownerId: 9 },
+      { timeValue: 30, timeScale: "minutes", calendarItemId: 2, ownerId: 9 },
+      { timeValue: 2, timeScale: "hours", calendarItemId: 6, ownerId: 9 },
+      { timeValue: 1, timeScale: "days", calendarItemId: 14, ownerId: 9 },
+      { timeValue: 3, timeScale: "hours", calendarItemId: 17, ownerId: 9 },
+
+      // User 10 — attending 1, 2, 5, 8, 12, 17
+      { timeValue: 2, timeScale: "hours", calendarItemId: 1, ownerId: 10 },
+      { timeValue: 1, timeScale: "hours", calendarItemId: 2, ownerId: 10 },
+      { timeValue: 30, timeScale: "minutes", calendarItemId: 5, ownerId: 10 },
+      { timeValue: 45, timeScale: "minutes", calendarItemId: 8, ownerId: 10 },
+      { timeValue: 1, timeScale: "days", calendarItemId: 12, ownerId: 10 },
+      { timeValue: 3, timeScale: "hours", calendarItemId: 17, ownerId: 10 },
+
+      // User 13 — attending 3, 8, 12, 14; owns 19
+      { timeValue: 15, timeScale: "minutes", calendarItemId: 14, ownerId: 13 },
+      { timeValue: 1, timeScale: "hours", calendarItemId: 19, ownerId: 13 },
+      { timeValue: 1, timeScale: "days", calendarItemId: 3, ownerId: 13 },
+      { timeValue: 2, timeScale: "hours", calendarItemId: 8, ownerId: 13 },
+      { timeValue: 1, timeScale: "days", calendarItemId: 12, ownerId: 13 },
+
+      // User 14 — attending 3, 8; owns 7, 15
+      { timeValue: 1, timeScale: "hours", calendarItemId: 7, ownerId: 14 },
+      { timeValue: 30, timeScale: "minutes", calendarItemId: 15, ownerId: 14 },
+      { timeValue: 30, timeScale: "minutes", calendarItemId: 3, ownerId: 14 },
+      { timeValue: 1, timeScale: "hours", calendarItemId: 8, ownerId: 14 },
+    ]);
+
+    console.log(`⏰ Created ${reminders.length} reminders`);
 
     console.log("🌱 Seeded the database");
   } catch (error) {
