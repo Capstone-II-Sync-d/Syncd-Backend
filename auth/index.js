@@ -165,7 +165,7 @@ router.post("/signup", async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: true,
-      sameSite: "strict",
+      sameSite: process.env.SAME_SITE || "strict",
       maxAge: 24 * 60 * 60 * 1000,
     });
 
