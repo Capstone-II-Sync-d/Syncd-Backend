@@ -44,11 +44,11 @@ Event.belongsTo(CalendarItem, {
 })
 
 // --------------------------------------------
-// Calendar item has attendees
-CalendarItem.hasMany(Attendee, {
+// Events have attendees
+Event.hasMany(Attendee, {
   foreignKey: 'eventId'
 });
-Attendee.belongsTo(CalendarItem, {
+Attendee.belongsTo(Event, {
   foreignKey: 'eventId'
 });
 
