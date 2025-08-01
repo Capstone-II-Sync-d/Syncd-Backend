@@ -27,10 +27,10 @@ const CalendarItem = db.define("calendar_item", {
     type: DataTypes.DATE,
     allowNull: false,
   },
-  privacy: {
-    type: DataTypes.ENUM(["public", "private"]),
-    defaultValue: "private",
+  public: {
+    type: DataTypes.BOOLEAN,
     allowNull: false,
+    defaultValue: false,
   },
   userId: {
     type: DataTypes.INTEGER,
