@@ -1,5 +1,5 @@
 const db = require("./db");
-const { User, Business, Follow, FriendShip, CalendarItem, Event } = require("./index");
+const { User, Business, Follow, FriendShip, CalendarItem, Event, Attendee } = require("./index");
 
 const seed = async () => {
   try {
@@ -506,6 +506,84 @@ const seed = async () => {
     ]);
 
     console.log(`📆 Created ${calendarItems.length} calendar items with ${events.length} corresponding events`);
+
+    const attendees = await Attendee.bulkCreate([
+      // Business Event: Weekly Team Sync (itemId: 1, owner: userId 3)
+      { eventId: 1, userId: 3 },
+      { eventId: 1, userId: 1 },
+      { eventId: 1, userId: 2 },
+      { eventId: 1, userId: 4 },
+
+      // Business Event: Brand Strategy Workshop (itemId: 2, owner: userId 1)
+      { eventId: 2, userId: 1 },
+      { eventId: 2, userId: 5 },
+      { eventId: 2, userId: 9 },
+      { eventId: 2, userId: 10 },
+      { eventId: 2, userId: 11 },
+
+      // Business Event: Summer Collection Launch (itemId: 3, owner: userId 5)
+      { eventId: 3, userId: 5 },
+      { eventId: 3, userId: 2 },
+      { eventId: 3, userId: 6 },
+      { eventId: 3, userId: 8 },
+      { eventId: 3, userId: 10 },
+      { eventId: 3, userId: 12 },
+      { eventId: 3, userId: 14 },
+      { eventId: 3, userId: 16 },
+
+      // Business Event: Mental Health Awareness Talk (itemId: 5, owner: userId 2)
+      { eventId: 4, userId: 2 },
+      { eventId: 4, userId: 3 },
+      { eventId: 4, userId: 6 },
+      { eventId: 4, userId: 7 },
+      { eventId: 4, userId: 10 },
+      { eventId: 4, userId: 11 },
+      { eventId: 4, userId: 15 },
+
+      // Business Event: Climbing Competition Finals (itemId: 6, owner: userId 3)
+      { eventId: 5, userId: 3 },
+      { eventId: 5, userId: 1 },
+      { eventId: 5, userId: 4 },
+      { eventId: 5, userId: 6 },
+      { eventId: 5, userId: 9 },
+      { eventId: 5, userId: 11 },
+      { eventId: 5, userId: 13 },
+      { eventId: 5, userId: 15 },
+
+      // Business Event: Pottery and Plants Workshop (itemId: 8, owner: userId 7)
+      { eventId: 6, userId: 7 },
+      { eventId: 6, userId: 4 },
+      { eventId: 6, userId: 6 },
+      { eventId: 6, userId: 10 },
+      { eventId: 6, userId: 13 },
+      { eventId: 6, userId: 14 },
+
+      // Business Event: Yoga and Breathwork (itemId: 9, owner: userId 3)
+      { eventId: 7, userId: 3 },
+      { eventId: 7, userId: 2 },
+      { eventId: 7, userId: 4 },
+      { eventId: 7, userId: 7 },
+      { eventId: 7, userId: 8 },
+      { eventId: 7, userId: 11 },
+
+      // User Event: Book Club Meetup (itemId: 12, userId: 10)
+      { eventId: 8, userId: 10 },
+      { eventId: 8, userId: 6 },
+      { eventId: 8, userId: 11 },
+      { eventId: 8, userId: 13 },
+
+      // User Event: Photography Walk (itemId: 14, userId: 13)
+      { eventId: 9, userId: 13 },
+      { eventId: 9, userId: 9 },
+      { eventId: 9, userId: 12 },
+
+      // User Event: Online Coding Bootcamp (itemId: 17, userId: 9)
+      { eventId: 10, userId: 9 },
+      { eventId: 10, userId: 10 },
+      { eventId: 10, userId: 12 },
+    ]);
+
+    console.log(`👥 Created ${attendees.length} attendees`);
 
     console.log("🌱 Seeded the database");
   } catch (error) {
