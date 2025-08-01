@@ -54,6 +54,15 @@ Attendee.belongsTo(Event, {
 });
 
 // --------------------------------------------
+// Users are attendees
+User.hasMany(Attendee, {
+  foreignKey: 'userId'
+});
+Attendee.belongsTo(User, {
+  foreignKey: 'userId'
+});
+
+// --------------------------------------------
 // User has friends
 User.hasMany(FriendShip, {
   foreignKey: 'user1'
