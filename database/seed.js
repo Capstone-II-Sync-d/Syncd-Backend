@@ -1,5 +1,5 @@
 const db = require("./db");
-const { User, Business, Follow, FriendShip } = require("./index");
+const { User, Business, Follow, FriendShip, CalendarItem, Event } = require("./index");
 
 const seed = async () => {
   try {
@@ -238,6 +238,274 @@ const seed = async () => {
     ]);
 
     console.log(`🫂  Created ${friendships.length} friendships`);
+
+    const calendarItems = await CalendarItem.bulkCreate([
+      {
+        id: 1,
+        title: "Weekly Team Sync",
+        description: "Staff sync-up and planning meeting.",
+        location: "123 Main St, Springfield",
+        start: "2025-08-01T10:00:00Z",
+        end: "2025-08-01T11:00:00Z",
+        public: false,
+        userId: 3
+      },
+      {
+        id: 2,
+        title: "Brand Strategy Workshop",
+        description: "Brainstorming session with designers and marketers.",
+        location: "45 Market Ave, Suite 200",
+        start: "2025-08-02T13:00:00Z",
+        end: "2025-08-02T15:30:00Z",
+        public: true,
+        userId: 1
+      },
+      {
+        id: 3,
+        title: "Summer Collection Launch",
+        description: "Showcasing the new streetwear line.",
+        location: "Urban Threads HQ, 501 Fashion Blvd",
+        start: "2025-08-10T17:00:00Z",
+        end: "2025-08-10T20:00:00Z",
+        public: true,
+        userId: 5
+      },
+      {
+        id: 4,
+        title: "Personal Therapy Session",
+        description: "Weekly therapy with Dr. Logan",
+        location: "Online (Zoom)",
+        start: "2025-08-05T09:00:00Z",
+        end: "2025-08-05T10:00:00Z",
+        public: false,
+        userId: 8
+      },
+      {
+        id: 5,
+        title: "Mental Health Awareness Talk",
+        description: "Free community session hosted by MindSpring Therapy.",
+        location: "Community Center, 88 Elm St",
+        start: "2025-08-08T18:00:00Z",
+        end: "2025-08-08T19:30:00Z",
+        public: true,
+        userId: 2
+      },
+      {
+        id: 6,
+        title: "Climbing Competition Finals",
+        description: "Summit Climb Co. hosts its annual competition.",
+        location: "Summit Climb Gym, 200 Heights Dr",
+        start: "2025-08-15T12:00:00Z",
+        end: "2025-08-15T16:00:00Z",
+        public: true,
+        userId: 3
+      },
+      {
+        id: 7,
+        title: "Weekend Plant Care",
+        description: "Water and repot my houseplants.",
+        location: "Home",
+        start: "2025-08-03T09:00:00Z",
+        end: "2025-08-03T10:00:00Z",
+        public: false,
+        userId: 14
+      },
+      {
+        id: 8,
+        title: "Pottery and Plants Workshop",
+        description: "Learn pottery basics while repotting new plants.",
+        location: "Bloom & Root Studio, 321 Grove Ln",
+        start: "2025-08-12T14:00:00Z",
+        end: "2025-08-12T16:30:00Z",
+        public: true,
+        userId: 7
+      },
+      {
+        id: 9,
+        title: "Yoga and Breathwork",
+        description: "Guided session to unwind before the week begins.",
+        location: "Summit Climb Studio Room B",
+        start: "2025-08-04T08:00:00Z",
+        end: "2025-08-04T09:15:00Z",
+        public: false,
+        userId: 3
+      },
+      {
+        id: 10,
+        title: "Dentist Appointment",
+        description: "Routine cleaning at Dr. Kim’s office.",
+        location: "Smile Dental Clinic, 789 Wellness Rd",
+        start: "2025-08-07T11:30:00Z",
+        end: "2025-08-07T12:00:00Z",
+        public: false,
+        userId: 9
+      },
+      {
+        id: 11,
+        title: "Morning Jog",
+        description: "Jog through the park for 30 minutes.",
+        location: "Maple Park Trail",
+        start: "2025-08-06T06:30:00Z",
+        end: "2025-08-06T07:00:00Z",
+        public: false,
+        userId: 12
+      },
+      {
+        id: 12,
+        title: "Book Club Meetup",
+        description: "Discuss this month’s novel: *The Silent Patient*.",
+        location: "City Library, Room 3A",
+        start: "2025-08-09T18:00:00Z",
+        end: "2025-08-09T19:30:00Z",
+        public: true,
+        userId: 10
+      },
+      {
+        id: 13,
+        title: "Grocery Run",
+        description: "Weekly grocery shopping trip.",
+        location: "Whole Market, 125 Greenway",
+        start: "2025-08-03T14:00:00Z",
+        end: "2025-08-03T15:00:00Z",
+        public: false,
+        userId: 11
+      },
+      {
+        id: 14,
+        title: "Photography Walk",
+        description: "Nature walk with friends to take photos.",
+        location: "Ridgewood Nature Reserve",
+        start: "2025-08-17T09:30:00Z",
+        end: "2025-08-17T11:30:00Z",
+        public: true,
+        userId: 13
+      },
+      {
+        id: 15,
+        title: "Meditation Time",
+        description: "20 minutes of silent meditation.",
+        location: "Living Room",
+        start: "2025-08-01T08:00:00Z",
+        end: "2025-08-01T08:20:00Z",
+        public: false,
+        userId: 14
+      },
+      {
+        id: 16,
+        title: "Birthday Dinner with Family",
+        description: "Celebrating mom’s birthday at her favorite place.",
+        location: "Olivetto’s Italian Bistro",
+        start: "2025-08-13T19:00:00Z",
+        end: "2025-08-13T21:00:00Z",
+        public: false,
+        userId: 6
+      },
+      {
+        id: 17,
+        title: "Online Coding Bootcamp",
+        description: "Live workshop on React & Node.js development.",
+        location: "Online - Zoom link provided",
+        start: "2025-08-20T17:00:00Z",
+        end: "2025-08-20T20:00:00Z",
+        public: true,
+        userId: 9
+      },
+      {
+        id: 18,
+        title: "Lunch with Sarah",
+        description: "Catching up over lunch with an old friend.",
+        location: "Cafe Lume, 42 Riverfront Drive",
+        start: "2025-08-07T12:30:00Z",
+        end: "2025-08-07T13:30:00Z",
+        public: false,
+        userId: 15
+      },
+      {
+        id: 19,
+        title: "Weekly Meal Prep",
+        description: "Prepare meals for the upcoming week.",
+        location: "Home Kitchen",
+        start: "2025-08-04T17:30:00Z",
+        end: "2025-08-04T19:00:00Z",
+        public: false,
+        userId: 13
+      },
+      {
+        id: 20,
+        title: "Game Night",
+        description: "Board games and snacks with roommates.",
+        location: "Apartment 4C",
+        start: "2025-08-05T20:00:00Z",
+        end: "2025-08-05T22:30:00Z",
+        public: false,
+        userId: 9
+      }
+    ]);
+
+    const events = await Event.bulkCreate([
+      {
+        itemId: 1,
+        chatLink: null,
+        published: true,
+        businessId: 1
+      },
+      {
+        itemId: 2,
+        chatLink: null,
+        published: true,
+        businessId: 2
+      },
+      {
+        itemId: 3,
+        chatLink: null,
+        published: false,
+        businessId: 3
+      },
+      {
+        itemId: 5,
+        chatLink: null,
+        published: true,
+        businessId: 4
+      },
+      {
+        itemId: 6,
+        chatLink: null,
+        published: true,
+        businessId: 5
+      },
+      {
+        itemId: 8,
+        chatLink: null,
+        published: true,
+        businessId: 6
+      },
+      {
+        itemId: 9,
+        chatLink: null,
+        published: true,
+        businessId: 5
+      },
+      {
+        itemId: 12,
+        chatLink: null,
+        published: true,
+        businessId: null
+      },
+      {
+        itemId: 14,
+        chatLink: null,
+        published: true,
+        businessId: null
+      },
+      {
+        itemId: 17,
+        chatLink: null,
+        published: false,
+        businessId: null
+      }
+    ]);
+
+    console.log(`📆 Created ${calendarItems.length} calendar items with ${events.length} corresponding events`);
 
     console.log("🌱 Seeded the database");
   } catch (error) {
