@@ -5,6 +5,7 @@ const CalendarItem = require("./calendarItem");
 const FriendShip = require("./friendship");
 const Follow = require("./follow");
 const Attendee = require("./attendee");
+const Event = require("./event");
 
 // -------------- Associations -----------------//
 // User owns a business
@@ -91,6 +92,7 @@ module.exports = {
   User,
   Business,
   CalendarItem,
+  Event,
   FriendShip,
   Follow,
 };
