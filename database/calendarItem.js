@@ -10,6 +10,9 @@ const CalendarItem = db.define("calendar_item", {
   title: {
     type: DataTypes.STRING,
     allowNull: false,
+    validate: {
+      notEmpty: true,
+    },
   },
   description: {
     type: DataTypes.STRING,
