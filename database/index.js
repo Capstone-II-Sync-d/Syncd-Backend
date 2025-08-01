@@ -25,13 +25,22 @@ CalendarItem.belongsTo(User, {
 });
 
 // -------------------------------------------
-// Business has calendar items
-Business.hasMany(CalendarItem, {
+// Business has events
+Business.hasMany(Event, {
   foreignKey: 'businessId'
 });
-CalendarItem.belongsTo(Business, {
+Event.belongsTo(Business, {
   foreignKey: "businessId",
 });
+
+// -------------------------------------------
+// Event is calendar item
+CalendarItem.hasOne(Event, {
+  foreignKey: 'itemId'
+});
+Event.belongsTo(CalendarItem, {
+  foreignKey: 'itemId'
+})
 
 // --------------------------------------------
 // Calendar item has attendees
