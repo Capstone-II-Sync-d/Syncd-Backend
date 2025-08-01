@@ -29,6 +29,12 @@ const CalendarItem = db.define("calendar_item", {
   end: {
     type: DataTypes.DATE,
     allowNull: false,
+    validate: {
+      isEndAfterStart(value) {
+        if (value <= this.start)
+          throw new Error("End time must be after start time");
+      },
+    },
   },
   public: {
     type: DataTypes.BOOLEAN,
