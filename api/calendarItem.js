@@ -47,7 +47,46 @@ router.get("/user/:id/calendaritems", async (req, res) => {
 });
 
 //|-----------------------------------------------------------------|
-// Get a specific calendar item by id for a specific user
+// Get a specific calendar item by id for a specific business
+router.get("/business/:id/calendaritems/:itemId", async (req, res) => {
+  //Get business ID and calendar item ID from URL parameters
+  const businessId = req.params.id;
+  const itemId = req.params.itemId;
+
+  try {
+    //Find the calendar item with matching ID that belongs to this business
+    const calendarItem = await CalendarItem.findOne({
+      where: {
+        id: itemId,
+        businessId: businessId, //Ensure the item belongs to this business
+      },
+      include: [
+        {
+          model: Business,
+          attributes: ["id", "name"],
+        },
+      ],
+    });
+    //if no item is found, send 404
+    if (!calendarItem) {
+      return res
+        .status(404)
+        .json({
+          error: `No calendar item with ID ${itemId} found for business ${businessId}`,
+        });
+    }
+    // Send success response with the specific calendar item
+    res.status(200).json(calendarItem);
+  } catch (error) {
+    // Log error to console and send failure response
+    console.error("Error fetching specific business calendar item:", error);
+    res
+      .status(500)
+      .json({
+        error: `Failed to fetch calendar item ${itemId} for business ${businessId}`,
+      });
+  }
+});
 
 //|-----------------------------------------------------------------|
 // Create a new calendar item for a user
