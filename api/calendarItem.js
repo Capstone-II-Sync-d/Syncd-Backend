@@ -47,73 +47,12 @@ router.get("/user/:id/calendaritems", async (req, res) => {
 });
 
 //|-----------------------------------------------------------------|
-// Get a specific calendar item by id for a specific business
-router.get("/business/:id/calendaritems/:itemId", async (req, res) => {
-  //Get business ID and calendar item ID from URL parameters
-  const businessId = req.params.id;
-  const itemId = req.params.itemId;
+//Get one of a user calendarItems by id
 
-  try {
-    //Find the calendar item with matching ID that belongs to this business
-    const calendarItem = await CalendarItem.findOne({
-      where: {
-        id: itemId,
-        businessId: businessId, //Ensure the item belongs to this business
-      },
-      include: [
-        {
-          model: Business,
-          attributes: ["id", "name"],
-        },
-      ],
-    });
-    //if no item is found, send 404
-    if (!calendarItem) {
-      return res
-        .status(404)
-        .json({
-          error: `No calendar item with ID ${itemId} found for business ${businessId}`,
-        });
-    }
-    // Send success response with the specific calendar item
-    res.status(200).json(calendarItem);
-  } catch (error) {
-    // Log error to console and send failure response
-    console.error("Error fetching specific business calendar item:", error);
-    res
-      .status(500)
-      .json({
-        error: `Failed to fetch calendar item ${itemId} for business ${businessId}`,
-      });
-  }
-});
 
 //|-----------------------------------------------------------------|
-// Create a new calendar item for a business
-router.post("/business/:id/calendaritems", async (req, res) => {
-  // Get business ID from URL parameters
-  const businessId = req.params.id;
+// Create a new calendar item by id
 
-  try {
-    // Get the calendar item details from the request body
-    const calendarItemData = req.body;
-
-    // Create a new calendar item and attach the businessId to it
-    const newItem = await CalendarItem.create({
-      ...calendarItemData,
-      businessId: businessId,
-    });
-
-    // Send success response with the newly created calendar item
-    res.status(201).json(newItem);
-  } catch (error) {
-    // Log error to console and send failure response
-    console.error("Error creating business calendar item:", error);
-    res
-      .status(500)
-      .json({ error: `Failed to create calendar item for business ${businessId}` });
-  }
-});
 
 //|-----------------------------------------------------------------|
 // Edit a user calendar item by id
@@ -161,6 +100,44 @@ router.get("/business/:id/calendaritems", async (req, res) => {
 });
 //|-----------------------------------------------------------------|
 // Get a specific business calendar item by id
+
+router.get("/business/:id/calendaritems/:itemId", async (req, res) => {
+  // Get business ID and calendar item ID from URL parameters
+  const businessId = req.params.id;
+  const itemId = req.params.itemId;
+
+  try {
+    // Find the calendar item with matching ID that belongs to this business
+    const calendarItem = await CalendarItem.findOne({
+      where: {
+        id: itemId,
+        businessId: businessId, // Ensure the item belongs to this business
+      },
+      include: [
+        {
+          model: Business,
+          attributes: ["id", "name"], // Only include limited business details
+        },
+      ],
+    });
+
+    // If no item is found, send a 404 Not Found response
+    if (!calendarItem) {
+      return res.status(404).json({
+        error: `No calendar item with ID ${itemId} found for business ${businessId}`,
+      });
+    }
+
+    // Send success response with the found calendar item
+    res.status(200).json(calendarItem);
+  } catch (error) {
+    // Log error and send failure response
+    console.error("Error fetching specific business calendar item:", error);
+    res.status(500).json({
+      error: `Failed to fetch calendar item ${itemId} for business ${businessId}`,
+    });
+  }
+});
 
 //|-----------------------------------------------------------------|
 // Create a new calendar item for a business
