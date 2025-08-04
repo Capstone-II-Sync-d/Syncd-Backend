@@ -234,3 +234,4 @@ router.get("/business/:id/followers", async (req, res) => {
 });
 
 //|-------------------------------------------------------------------|
+module.exports = router;
