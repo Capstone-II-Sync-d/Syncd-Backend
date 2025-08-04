@@ -141,6 +141,30 @@ router.get("/business/:id/calendaritems/:itemId", async (req, res) => {
 
 //|-----------------------------------------------------------------|
 // Create a new calendar item for a business
+router.post("/business/:id/calendaritems", async (req, res) => {
+  // Get business ID from URL parameters
+  const businessId = req.params.id;
+
+  try {
+    // Get the calendar item details from the request body
+    const calendarItemData = req.body;
+
+    // Create a new calendar item and attach the businessId to it
+    const newItem = await CalendarItem.create({
+      ...calendarItemData,
+      businessId: businessId,
+    });
+
+    // Send success response with the newly created calendar item
+    res.status(201).json(newItem);
+  } catch (error) {
+    // Log error to console and send failure response
+    console.error("Error creating business calendar item:", error);
+    res.status(500).json({
+      error: `Failed to create calendar item for business ${businessId}`,
+    });
+  }
+});
 
 //|-----------------------------------------------------------------|
 // Edit a business calendar item by id
