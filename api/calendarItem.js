@@ -168,6 +168,40 @@ router.post("/business/:id/calendaritems", async (req, res) => {
 
 //|-----------------------------------------------------------------|
 // Edit a business calendar item by id
+router.patch("/business/:id/calendaritems/:itemId", async (req, res) => {
+  // Get business ID and calendar item ID from URL parameters
+  const businessId = req.params.id;
+  const itemId = req.params.itemId;
+
+  try {
+    // Find the calendar item with matching ID and businessId
+    const calendarItem = await CalendarItem.findOne({
+      where: {
+        id: itemId,
+        businessId: businessId,
+      },
+    });
+
+    // If item not found, send 404
+    if (!calendarItem) {
+      return res.status(404).json({
+        error: `No calendar item with ID ${itemId} found for business ${businessId}`,
+      });
+    }
+
+    // Update the calendar item with the new data
+    await calendarItem.update(req.body);
+
+    // Send success response with updated calendar item
+    res.status(200).json(calendarItem);
+  } catch (error) {
+    // Log error and send failure response
+    console.error("Error updating business calendar item:", error);
+    res.status(500).json({
+      error: `Failed to update calendar item ${itemId} for business ${businessId}`,
+    });
+  }
+});
 
 //|-----------------------------------------------------------------|
 // Delete a business calendar item by id
