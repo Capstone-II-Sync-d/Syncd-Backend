@@ -206,6 +206,42 @@ router.patch("/business/:id/calendaritems/:itemId", async (req, res) => {
 //|-----------------------------------------------------------------|
 // Delete a business calendar item by id
 
+router.delete("/business/:id/calendaritems/:itemId", async (req, res) => {
+  // Get business ID and calendar item ID from URL parameters
+  const businessId = req.params.id;
+  const itemId = req.params.itemId;
+
+  try {
+    // Find the calendar item with matching ID and businessId
+    const calendarItem = await CalendarItem.findOne({
+      where: {
+        id: itemId,
+        businessId: businessId,
+      },
+    });
+
+    // If item not found, send 404
+    if (!calendarItem) {
+      return res.status(404).json({
+        error: `No calendar item with ID ${itemId} found for business ${businessId}`,
+      });
+    }
+
+    // Delete the calendar item
+    await calendarItem.destroy();
+
+    // Send success response
+    res.status(200).json({
+      message: `Calendar item ${itemId} successfully deleted for business ${businessId}`,
+    });
+  } catch (error) {
+    // Log error and send failure response
+    console.error("Error deleting business calendar item:", error);
+    res.status(500).json({
+      error: `Failed to delete calendar item ${itemId} for business ${businessId}`,
+    });
+  }
+});
 //|-------------------------------------------------------------------|
 
 modeul.exports = router;
