@@ -17,7 +17,7 @@ const { Op } = require("sequelize");
 
 //|-----------------------------------------------------------------|
 // Get all calendar items for a specific user
-router.get("/user/:id/calendaritems", async (req, res) => {
+router.get("/user/:id", async (req, res) => {
   // Get user id from paramaters
   const id = req.params.id;
   try {
@@ -41,7 +41,7 @@ router.get("/user/:id/calendaritems", async (req, res) => {
 
 //|-----------------------------------------------------------------|
 // Get one of a user's calendar items id
-router.get("/calendaritems/:itemId", async (req, res) => {
+router.get("/:itemId", async (req, res) => {
   // Get calendar item id from parameters
   const itemId = req.params.itemId;
   try {
@@ -63,7 +63,7 @@ router.get("/calendaritems/:itemId", async (req, res) => {
 
 //|-----------------------------------------------------------------|
 // Create a new calendar item for a user
-router.post("/user/:id/calendaritems", async (req, res) => {
+router.post("/user/:id", async (req, res) => {
   // Get user id from path
   const userId = req.params.id;
   try {
@@ -86,7 +86,7 @@ router.post("/user/:id/calendaritems", async (req, res) => {
 
 //|-----------------------------------------------------------------|
 // Edit a user calendar item by id
-router.patch("/calendaritems/:itemId", async (req, res) => {
+router.patch("/:itemId", async (req, res) => {
   // Get calendar item id from url
   const itemId = req.params.itemId;
   try {
@@ -113,7 +113,7 @@ router.patch("/calendaritems/:itemId", async (req, res) => {
 
 //|-----------------------------------------------------------------|
 // Delete a user calendar item by id
-router.delete("/calendaritems/:itemId", async (req,res) => {
+router.delete("/:itemId", async (req,res) => {
   // Get calendar item id from URL
   const itemId = req.params.itemId;
   try {
@@ -142,7 +142,7 @@ router.delete("/calendaritems/:itemId", async (req,res) => {
 
 //|-----------------------------------------------------------------|
 // Get all calendar items for a specific business
-router.get("/business/:id/calendaritems", async (req, res) => {
+router.get("/business/:id", async (req, res) => {
   //get business id from URL parameters
   const id = req.params.id;
   try {
@@ -177,7 +177,7 @@ router.get("/business/:id/calendaritems", async (req, res) => {
 //|-----------------------------------------------------------------|
 // Get a specific business calendar item by id
 
-router.get("/business/:id/calendaritems/:itemId", async (req, res) => {
+router.get("/business/:id/:itemId", async (req, res) => {
   // Get business ID and calendar item ID from URL parameters
   const businessId = req.params.id;
   const itemId = req.params.itemId;
@@ -217,7 +217,7 @@ router.get("/business/:id/calendaritems/:itemId", async (req, res) => {
 
 //|-----------------------------------------------------------------|
 // Create a new calendar item for a business
-router.post("/business/:id/calendaritems", async (req, res) => {
+router.post("/business/:id", async (req, res) => {
   // Get business ID from URL parameters
   const businessId = req.params.id;
 
@@ -244,7 +244,7 @@ router.post("/business/:id/calendaritems", async (req, res) => {
 
 //|-----------------------------------------------------------------|
 // Edit a business calendar item by id
-router.patch("/business/:id/calendaritems/:itemId", async (req, res) => {
+router.patch("/business/:id/:itemId", async (req, res) => {
   // Get business ID and calendar item ID from URL parameters
   const businessId = req.params.id;
   const itemId = req.params.itemId;
@@ -282,7 +282,7 @@ router.patch("/business/:id/calendaritems/:itemId", async (req, res) => {
 //|-----------------------------------------------------------------|
 // Delete a business calendar item by id
 
-router.delete("/business/:id/calendaritems/:itemId", async (req, res) => {
+router.delete("/business/:id/:itemId", async (req, res) => {
   // Get business ID and calendar item ID from URL parameters
   const businessId = req.params.id;
   const itemId = req.params.itemId;
