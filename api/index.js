@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const profileRouter = require("./users");
-const calendarItemsRouter = require("./calendarItem");
+const calendarItemsRouter = require("./calendarItems");
 
 router.use("/profiles", profileRouter);
 router.use("/calendarItems", calendarItemsRouter);
