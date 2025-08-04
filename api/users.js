@@ -214,7 +214,7 @@ router.delete("/business", async (req, res) => {
 
 //|-----------------------------------------------------------------|
 //Get all the followers of a business
-router.get("/business/:id", async (req, res) => {
+router.get("/business/:id/followers", async (req, res) => {
   //Get the id from URL
   const business_id = req.params.id;
   try {
