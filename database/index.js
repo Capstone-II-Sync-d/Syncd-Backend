@@ -5,6 +5,8 @@ const CalendarItem = require("./calendarItem");
 const FriendShip = require("./friendship");
 const Follow = require("./follow");
 const Attendee = require("./attendee");
+const Event = require("./event");
+const Reminder = require("./reminders");
 
 // -------------- Associations -----------------//
 // User owns a business
@@ -25,21 +27,39 @@ CalendarItem.belongsTo(User, {
 });
 
 // -------------------------------------------
-// Business has calendar items
-Business.hasMany(CalendarItem, {
+// Business has events
+Business.hasMany(Event, {
   foreignKey: 'businessId'
 });
-CalendarItem.belongsTo(Business, {
+Event.belongsTo(Business, {
   foreignKey: "businessId",
 });
 
+// -------------------------------------------
+// Event is calendar item
+CalendarItem.hasOne(Event, {
+  foreignKey: 'itemId'
+});
+Event.belongsTo(CalendarItem, {
+  foreignKey: 'itemId'
+})
+
 // --------------------------------------------
-// Calendar item has attendees
-CalendarItem.hasMany(Attendee, {
+// Events have attendees
+Event.hasMany(Attendee, {
   foreignKey: 'eventId'
 });
-Attendee.belongsTo(CalendarItem, {
+Attendee.belongsTo(Event, {
   foreignKey: 'eventId'
+});
+
+// --------------------------------------------
+// Users are attendees
+User.hasMany(Attendee, {
+  foreignKey: 'userId'
+});
+Attendee.belongsTo(User, {
+  foreignKey: 'userId'
 });
 
 // --------------------------------------------
@@ -82,6 +102,9 @@ module.exports = {
   User,
   Business,
   CalendarItem,
+  Event,
   FriendShip,
   Follow,
+  Attendee,
+  Reminder,
 };
