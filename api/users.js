@@ -4,70 +4,116 @@ const router = express.Router();
 const { User, Business, FriendShip, Follow } = require("../database");
 // Import Sequelize operators
 const { Op } = require("sequelize");
+const { authenticateJWT } = require("../auth");
 
 //|---------------------------------------------------------------------------------------|
 //              **************|User Profile Routing|****************
 //|---------------------------------------------------------------------------------------|
-//Edit a users profile information
-router.patch("/user/:id", async (req, res) => {
-  //Get user ID from url parameters
-  const userId = req.params.id;
+
+// Get a specific user's information
+// If they are friends, get all information, if not only username
+router.get("/user/:id", authenticateJWT, async (req, res) => {
   try {
-    //Get user ID from url parameters
+    // Get user ID from url parameters and requesting user ID from auth token
     const userId = req.params.id;
+    const requestingUserId = req.user.id;
 
-    //Find the user with the id inside url params
-    const user = await User.findByPk(userId);
+    // Find the requested user with only public info by default
+    const user = await User.findByPk(userId, {
+      attributes: ["id", "username", "profilePicture"],
+    });
 
-    //Get the body of information sent.
-    //If anything was changed, it will be updated.
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Check if requesting user is friends with the requested user
+    const friendship = await FriendShip.findOne({
+      where: {
+        [Op.or]: [
+          { user1: userId, user2: requestingUserId },
+          { user1: requestingUserId, user2: userId },
+        ],
+      },
+    });
+
+    // If friends, return all user information
+    if (friendship) {
+      const fullUser = await User.findByPk(userId);
+      return res.status(200).json(fullUser);
+    }
+
+    // If not friends, return only public information
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ error: "Failed to fetch user" });
+  }
+});
+
+//|-----------------------------------------------------------------|
+// Edit current user's profile information [Protected]
+// Uses /me endpoint and gets user ID from auth token
+router.patch("/me", authenticateJWT, async (req, res) => {
+  try {
+    // Get user ID from auth token
+    const userId = req.user.id;
+    // Get the body of information sent
     const userProfile = req.body;
 
-    //Updates the user profile with body sent in.
+    // Find the current user
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Updates the user profile with body sent in
     await user.update(userProfile);
-    //Send a status of 200 if it goes through and send a json message saying what the 200 message was for
+    // Send a status of 200 if it goes through and send a json message
     res.status(200).json("Profile has successfully updated");
   } catch (error) {
     console.error("Error editing user profile:", error);
-    res.status(500).json({ error: `Failed to edit user ${userId} profile` });
+    res.status(500).json({ error: "Failed to edit user profile" });
   }
 });
 
 //|-----------------------------------------------------------------|
-//Delete a users profile
-router.delete("/user/:id", async (req, res) => {
-  //Get user ID from url parameters
-  const userId = req.params.id;
+// Delete current user's profile [Protected]
+// Uses /me endpoint and gets user ID from auth token
+router.delete("/me", authenticateJWT, async (req, res) => {
   try {
-    //Find the user with the id inside url params
+    // Get user ID from auth token
+    const userId = req.user.id;
+    // Find the current user
     const user = await User.findByPk(userId);
 
-    //Deletes that user
-    await user.delete();
-    //Send a status of 200 if it goes through and send a json message saying what the 200 message was for
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Deletes that user
+    await user.destroy();
+    // Send a status of 200 if it goes through and send a json message
     res.status(200).json("User has successfully been deleted");
   } catch (error) {
     console.error("Error deleting user:", error);
-    res.status(500).json({ error: `Failed to delete user ${userId}` });
+    res.status(500).json({ error: "Failed to delete user" });
   }
 });
 
 //|-----------------------------------------------------------------|
-//Get all friendships of a user
-router.get("/user/:id/friends", async (req, res) => {
-  //Get user ID from url parameters
-  const userId = req.params.id;
+// Get all friendships of current user [Protected]
+router.get("/me/friends", authenticateJWT, async (req, res) => {
   try {
-    //Find all friend of that specific user
+    // Get user ID from auth token
+    const userId = req.user.id;
+
+    // Find all friends of the current user
     const friendsConnected = await FriendShip.findAll({
       where: {
-        //or operator in express to check for any friendship where user1 OR user2 has that specific userId
-        [Op.or]: [
-          {
-            user1: userId,
-            user2: userId,
-          },
-        ],
+        // or operator to check for any friendship where user1 OR user2 is the current user
+        [Op.or]: [{ user1: userId }, { user2: userId }],
+        status: "accepted",
       },
       // Loads user details for both people in the friendship
       include: [
@@ -75,81 +121,82 @@ router.get("/user/:id/friends", async (req, res) => {
         { model: User, as: "secondary" },
       ],
     });
-    //maps through friendships that we gained to find the friend of that specific user
+
+    // maps through friendships to find the friend of the current user
     const friends = friendsConnected.map((friendship) => {
       if (friendship.user1 === userId) {
         return friendship.secondary;
-      } else if (friendship.user2 === userId) {
+      } else {
         return friendship.primary;
       }
     });
-    //Send back status of 200 if everything goes through and send the friends of that user
+
+    // Send back status of 200 if everything goes through and send the friends
     res.status(200).json(friends);
   } catch (error) {
     console.error("Error fetching friends:", error);
-    res
-      .status(500)
-      .json({ error: `Failed to fetch friends of user ${userId}` });
+    res.status(500).json({ error: "Failed to fetch friends" });
   }
 });
 
 //|-----------------------------------------------------------------|
-//Get all businesses made by a user
-router.get("/user/business/owner/:id", async (req, res) => {
-  //Get user ID from url parameters
-  const userId = req.params.id;
+// Get all businesses made by current user [Protected]
+router.get("/me/businesses", authenticateJWT, async (req, res) => {
   try {
-    //Find all business by this owner
-    const businesses = Business.findAll({ where: { ownerId: userId } });
+    // Get user ID from auth token
+    const userId = req.user.id;
+    // Find all business by this owner
+    const businesses = await Business.findAll({ where: { ownerId: userId } });
 
-    //Send back status of 200 if everything goes through and send the friends of that user
+    // Send back status of 200 if everything goes through
     res.status(200).json(businesses);
   } catch (error) {
     console.error("Error fetching businesses made by user:", error);
-    res
-      .status(500)
-      .json({ error: `Failed to fetch businesses made by user ${userId}` });
+    res.status(500).json({ error: "Failed to fetch businesses" });
   }
 });
 
 //|-----------------------------------------------------------------|
-//Get all businesses a user follows
-router.post("/user/following/:id", async (req, res) => {
-  //Get user ID from url parameters
-  const userId = req.params.id;
+// Get all businesses current user follows [Protected]
+router.get("/me/following", authenticateJWT, async (req, res) => {
   try {
-    //Get all Follows with a specific User
-    const businessFollowing = Follow.findAll({
+    // Get user ID from auth token
+    const userId = req.user.id;
+    // Get all Follows for the current user
+    const businessFollowing = await Follow.findAll({
       where: { userId: userId },
       include: Business,
     });
 
-    //Send back status of 200 if everything goes through and send the friends of that user
+    // Send back status of 200 if everything goes through
     res.status(200).json(businessFollowing);
   } catch (error) {
     console.error("Error fetching businesses a user follows:", error);
-    res
-      .status(500)
-      .json({ error: `Failed to fetch businesses user ${userId} follows` });
+    res.status(500).json({ error: "Failed to fetch followed businesses" });
   }
 });
+
 //|---------------------------------------------------------------------------------|
 //        **************|Business Profile Routing|****************
 //|---------------------------------------------------------------------------------|
 
-// Create a business
-router.post("/business/:userId", async (req, res) => {
+// Create a business [Protected]
+// Gets owner ID from auth token instead of URL parameter
+router.post("/business", authenticateJWT, async (req, res) => {
   try {
-    const ownerId = req.params.userId; // Get the user ID from the URL
-    const businessInfo = req.body; // Get business data from request body
+    // Get owner ID from auth token
+    const ownerId = req.user.id;
+    // Get business data from request body
+    const businessInfo = req.body;
 
-    // Attach the ownerId to the business info
+    // Create the new business with ownerId attached
     const newBusiness = await Business.create({
       ...businessInfo,
-      ownerId: parseInt(ownerId),
+      ownerId: ownerId,
     });
 
-    res.status(201).json(newBusiness); // Respond with the newly created business
+    // Respond with the newly created business
+    res.status(200).json(newBusiness);
   } catch (error) {
     console.error("Error creating business:", error);
     res.status(500).json({ error: "Failed to create business" });
@@ -157,13 +204,17 @@ router.post("/business/:userId", async (req, res) => {
 });
 
 //|-----------------------------------------------------------------|
-//Get a specific business by id
+// Get a specific business by id
 router.get("/business/:id", async (req, res) => {
-  //Get the id from URL
+  // Get the id from URL
   const businessId = req.params.id;
   try {
-    //Find the specific business with that id
+    // Find the specific business with that id
     const business = await Business.findByPk(businessId);
+
+    if (!business) {
+      return res.status(404).json({ error: "Business not found" });
+    }
 
     res.status(200).json(business);
   } catch (error) {
@@ -173,17 +224,31 @@ router.get("/business/:id", async (req, res) => {
 });
 
 //|-----------------------------------------------------------------|
-//Edit a business profile information
-router.patch("/business/:id", async (req, res) => {
-  //Get the id from URL
+// Edit a business profile information [Protected]
+// Only the owner can edit their business
+router.patch("/business/:id", authenticateJWT, async (req, res) => {
+  // Get the id from URL
   const businessId = req.params.id;
   try {
-    //Get all of the information they are trying to edit
+    // Get user ID from auth token
+    const userId = req.user.id;
+    // Get all of the information they are trying to edit
     const businessInfoChange = req.body;
-    //Find the specific business with that id
-    const business = await Business.findByPk(businessId);
 
-    //Update the business with the edited information
+    // Find the specific business with that id
+    const business = await Business.findByPk(businessId);
+    if (!business) {
+      return res.status(404).json({ error: "Business not found" });
+    }
+
+    // Check if user is the owner of the business
+    if (business.ownerId !== userId) {
+      return res
+        .status(403)
+        .json({ error: "Unauthorized to edit this business" });
+    }
+
+    // Update the business with the edited information
     await business.update(businessInfoChange);
 
     res.status(200).json(business);
@@ -194,18 +259,32 @@ router.patch("/business/:id", async (req, res) => {
 });
 
 //|-----------------------------------------------------------------|
-//Delete a business profile
-router.delete("/business", async (req, res) => {
-  //Get the id from URL
+// Delete a business profile by id [Protected]
+// Only the owner can delete their business
+router.delete("/business/:id", authenticateJWT, async (req, res) => {
+  // Get the id from URL
   const businessId = req.params.id;
   try {
-    //Find the specific business with that id
+    // Get user ID from auth token
+    const userId = req.user.id;
+    // Find the specific business with that id
     const business = await Business.findByPk(businessId);
 
-    //Delete the business
-    await business.delete();
+    if (!business) {
+      return res.status(404).json({ error: "Business not found" });
+    }
 
-    res.status(200);
+    // Check if user is the owner of the business
+    if (business.ownerId !== userId) {
+      return res
+        .status(403)
+        .json({ error: "Unauthorized to delete this business" });
+    }
+
+    // Delete the business
+    await business.destroy();
+
+    res.status(200).json("Business has been deleted");
   } catch (error) {
     console.error("Error deleting business:", error);
     res.status(500).json({ error: "Failed to delete business" });
@@ -213,13 +292,13 @@ router.delete("/business", async (req, res) => {
 });
 
 //|-----------------------------------------------------------------|
-//Get all the followers of a business
+// Get all the followers of a business
 router.get("/business/:id/followers", async (req, res) => {
-  //Get the id from URL
+  // Get the id from URL
   const business_id = req.params.id;
   try {
-    //Find the specific business with that id
-    const followers = await Business.findAll({
+    // Find all followers for this business
+    const followers = await Follow.findAll({
       where: { businessId: business_id },
       include: User,
     });
@@ -227,9 +306,7 @@ router.get("/business/:id/followers", async (req, res) => {
     res.status(200).json(followers);
   } catch (error) {
     console.error("Error fetching all followers:", error);
-    res
-      .status(500)
-      .json({ error: "Failed to fetch all followers of the business" });
+    res.status(500).json({ error: "Failed to fetch followers" });
   }
 });
 
