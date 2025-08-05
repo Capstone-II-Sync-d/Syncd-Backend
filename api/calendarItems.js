@@ -7,6 +7,7 @@ const {
   CalendarItem,
   Attendee,
   Reminder,
+  Event,
 } = require("../database");
 // Import Sequelize operators
 const { Op } = require("sequelize");
@@ -41,7 +42,7 @@ router.get("/user/:id", async (req, res) => {
 
 //|-----------------------------------------------------------------|
 // Get one of a user's calendar items id
-router.get("/:itemId", async (req, res) => {
+router.get("user/item/:itemId", async (req, res) => {
   // Get calendar item id from parameters
   const itemId = req.params.itemId;
   try {
@@ -86,7 +87,7 @@ router.post("/user/:id", async (req, res) => {
 
 //|-----------------------------------------------------------------|
 // Edit a user calendar item by id
-router.patch("/:itemId", async (req, res) => {
+router.patch("user/item/:itemId", async (req, res) => {
   // Get calendar item id from url
   const itemId = req.params.itemId;
   try {
@@ -113,7 +114,7 @@ router.patch("/:itemId", async (req, res) => {
 
 //|-----------------------------------------------------------------|
 // Delete a user calendar item by id
-router.delete("/:itemId", async (req,res) => {
+router.delete("user/item/:itemId", async (req,res) => {
   // Get calendar item id from URL
   const itemId = req.params.itemId;
   try {
@@ -174,9 +175,9 @@ router.get("/business/:id", async (req, res) => {
       .json({ error: `Failed to fetch calendar items for business ${id}` });
   }
 });
+
 //|-----------------------------------------------------------------|
 // Get a specific business calendar item by id
-
 router.get("/business/:id/:itemId", async (req, res) => {
   // Get business ID and calendar item ID from URL parameters
   const businessId = req.params.id;
@@ -281,7 +282,6 @@ router.patch("/business/:id/:itemId", async (req, res) => {
 
 //|-----------------------------------------------------------------|
 // Delete a business calendar item by id
-
 router.delete("/business/:id/:itemId", async (req, res) => {
   // Get business ID and calendar item ID from URL parameters
   const businessId = req.params.id;
@@ -318,6 +318,41 @@ router.delete("/business/:id/:itemId", async (req, res) => {
     });
   }
 });
+
 //|-------------------------------------------------------------------|
+// Get all public events
+router.get("/events", async (req, res) => {
+  try {
+    const rawEvents = await Event.findAll({
+      where: { published: true },
+      include: [
+        { model: Business },
+        { 
+          model: CalendarItem,
+          where: { public: true },
+          include: [ { model: User } ],
+        },
+      ]
+    });
+    const events = rawEvents.map((event) => ({
+      id: event.id,
+      title: event.calendar_item.title,
+      description: event.calendar_item.description,
+      location: event.calendar_item.location,
+      startTime: event.calendar_item.start,
+      endTime: event.calendar_item.end,
+      business: event.business ? event.business.name : null,
+      chatLink: event.chatLink,
+      creatorName: `${event.calendar_item.user.firstName} ${event.calendar_item.user.lastName}`,
+      creatorUsername: event.calendar_item.user.username,
+    }));
+    res.status(200).send(events);
+  } catch (error) {
+    console.error("Error getting all public events:", error);
+    res.status(500).json({
+      error: `Failed to get all public events`,
+    });
+  }
+});
 
 module.exports = router;
