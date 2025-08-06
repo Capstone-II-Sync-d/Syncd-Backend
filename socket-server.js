@@ -1,5 +1,6 @@
 const { Server } = require("socket.io");
 const { User, FriendShip } = require("./database");
+const { Op } = require("sequelize");
 
 let io;
 
@@ -15,19 +16,26 @@ const initSocketServer = (server) => {
         methods: ["GET", "POST", "PATCH", "DELETE"],
       },
     });
-
+    //Happens Whenever a user connects to a socket
     io.on("connection", (socket) => {
       console.log(`🔗 User ${socket.id} connected to sockets`);
 
-      socket.on("userConnected", (user) => {
-        onlineUsers.push(user);
-        console.log(onlineUsers);
-      });
       socket.on("disconnect", () => {
+        if (socket.userId) {
+          const index = onlineUsers.findIndex((u) => u.id === socket.userId);
+          if (index !== -1) {
+            onlineUsers.splice(index, 1);
+          }
+        }
         console.log(`🔗 User ${socket.id} disconnected from sockets`);
       });
 
       // Add custom socket event handlers here
+
+      socket.on("userConnected", async (user) => {
+        //Take that Users informationa and add it to the online Users array
+        onlineUsers.push(user);
+      });
     });
   } catch (error) {
     console.error("❌ Error initializing socket server:");
