@@ -18,6 +18,12 @@ router.get("/user/:id", authenticateJWT, async (req, res) => {
     const userId = req.params.id;
     const requestingUserId = req.user.id;
 
+    const isOwner = parseInt(userId) === parseInt(requestingUserId);
+
+    if (userId === requestingUserId) {
+      isOwner = true;
+    }
+
     // Find the requested user with only public info by default
     const user = await User.findByPk(userId, {
       attributes: ["id", "username", "profilePicture"],
@@ -38,7 +44,7 @@ router.get("/user/:id", authenticateJWT, async (req, res) => {
     });
 
     // If friends, return all user information
-    if (friendship) {
+    if (isOwner || friendship) {
       const fullUser = await User.findByPk(userId);
       return res.status(200).json(fullUser);
     }
@@ -210,7 +216,7 @@ router.get("/business/:id", async (req, res) => {
   const businessId = req.params.id;
   try {
     // Find the specific business with that id
-    const business = await Business.findByPk(businessId);
+    const business = await Business.findByPk(businessId, { include: User });
 
     if (!business) {
       return res.status(404).json({ error: "Business not found" });
