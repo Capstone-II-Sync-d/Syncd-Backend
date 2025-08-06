@@ -2,7 +2,27 @@ const { DataTypes } = require("sequelize");
 const db = require("./db");
 const bcrypt = require("bcrypt");
 
+//User model definitions
 const User = db.define("user", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  firstName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: true,
+    },
+  },
+  lastName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: true,
+    },
+  },
   username: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -13,11 +33,25 @@ const User = db.define("user", {
   },
   email: {
     type: DataTypes.STRING,
-    allowNull: true,
+    allowNull: false,
     unique: true,
     validate: {
       isEmail: true,
     },
+  },
+  bio: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    defaultValue: null,
+  },
+  profilePicture: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue:
+      "https://static.vecteezy.com/system/resources/thumbnails/009/734/564/small_2x/default-avatar-profile-icon-of-social-media-user-vector.jpg",
+    validate: {
+      isUrl: true,
+    }
   },
   auth0Id: {
     type: DataTypes.STRING,
@@ -27,6 +61,10 @@ const User = db.define("user", {
   passwordHash: {
     type: DataTypes.STRING,
     allowNull: true,
+  },
+  isAdmin: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
   },
 });
 
