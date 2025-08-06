@@ -234,4 +234,28 @@ router.get("/business/:id/followers", async (req, res) => {
 });
 
 //|-------------------------------------------------------------------|
+// Get all businesses
+router.get("/businesses", async (req, res) => {
+  try {
+    const rawBusinesses = await Business.findAll({
+      include: User,
+    });
+    const businesses = rawBusinesses.map((business) => (
+      {
+        id: business.id,
+        name: business.name,
+        email: business.email,
+        bio: business.bio,
+        category: business.category,
+        owner: `${business.user.firstName} ${business.user.lastName}`,
+        ownerId: business.ownerId,
+      }
+    ));
+    res.status(200).send(businesses);
+  } catch (error) {
+    console.error("Error getting all businesses:", error);
+    res.status(500).send({ error: `Failed to get all businesses: ${error}` });
+  }
+});
+
 module.exports = router;
