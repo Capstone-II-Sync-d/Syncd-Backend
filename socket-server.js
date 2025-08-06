@@ -1,9 +1,11 @@
 const { Server } = require("socket.io");
+const { User, FriendShip } = require("./database");
 
 let io;
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
+const onlineUsers = [];
 const initSocketServer = (server) => {
   try {
     io = new Server(server, {
@@ -17,6 +19,10 @@ const initSocketServer = (server) => {
     io.on("connection", (socket) => {
       console.log(`🔗 User ${socket.id} connected to sockets`);
 
+      socket.on("userConnected", (user) => {
+        onlineUsers.push(user);
+        console.log(onlineUsers);
+      });
       socket.on("disconnect", () => {
         console.log(`🔗 User ${socket.id} disconnected from sockets`);
       });
