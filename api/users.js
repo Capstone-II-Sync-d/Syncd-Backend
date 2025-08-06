@@ -330,6 +330,7 @@ router.get("/businesses", async (req, res) => {
         email: business.email,
         bio: business.bio,
         category: business.category,
+        icon: business.pictureUrl,
         owner: `${business.user.firstName} ${business.user.lastName}`,
         ownerId: business.ownerId,
       }
