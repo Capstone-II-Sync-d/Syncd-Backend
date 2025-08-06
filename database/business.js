@@ -33,6 +33,15 @@ const Business = db.define("business", {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
+  pictureUrl: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue:
+      "https://static.vecteezy.com/system/resources/thumbnails/009/734/564/small_2x/default-avatar-profile-icon-of-social-media-user-vector.jpg",
+    validate: {
+      isUrl: true,
+    },
+  },
 });
 
 module.exports = Business;
