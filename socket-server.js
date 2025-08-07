@@ -79,7 +79,7 @@ const initSocketServer = (server) => {
 
         // maps through friendships to find the friend of the current user
         const friends = friendsConnected.map((friendship) => {
-          if (friendship.user1 === userId) {
+          if (friendship.user1 === viewerId) {
             return friendship.secondary;
           } else {
             return friendship.primary;
