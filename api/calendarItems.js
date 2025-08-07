@@ -419,16 +419,52 @@ router.delete("/business/:id/:itemId", async (req, res) => {
 // Get all public events
 router.get("/events", async (req, res) => {
   try {
+    const events = await getEvents(false);
+    res.status(200).send(events);
+  } catch (error) {
+    console.error("Error getting all public events:", error);
+    res.status(500).json({
+      error: `Failed to get all public events`,
+    });
+  }
+});
+
+//|-------------------------------------------------------------------|
+// Get all future public events
+router.get("/events/future", async (req, res) => {
+  try {
+    const events = await getEvents(true);
+    res.status(200).send(events);
+  } catch (error) {
+    console.error("Error getting all future public events:", error);
+    res.status(500).json({
+      error: `Failed to get all future public events`,
+    });
+  }
+});
+
+//|-------------------------------------------------------------------|
+// Helper function to get events using a flag for only future events 
+// or all events
+const getEvents = async (onlyFuture) => {
+  const whereOptions = { public: true }
+  if (onlyFuture) {
+    const now = new Date();
+    whereOptions.start = { [Op.gt]: now };
+  }
+
+  try {
     const rawEvents = await Event.findAll({
       where: { published: true },
       include: [
         { model: Business },
         { 
           model: CalendarItem,
-          where: { public: true },
+          where: whereOptions,
           include: [ { model: User } ],
         },
-      ]
+      ],
+      order: [[CalendarItem, 'start']],
     });
     const events = rawEvents.map((event) => ({
       id: event.id,
@@ -442,13 +478,10 @@ router.get("/events", async (req, res) => {
       creatorName: `${event.calendar_item.user.firstName} ${event.calendar_item.user.lastName}`,
       creatorUsername: event.calendar_item.user.username,
     }));
-    res.status(200).send(events);
+    return events;
   } catch (error) {
-    console.error("Error getting all public events:", error);
-    res.status(500).json({
-      error: `Failed to get all public events`,
-    });
+    throw error;
   }
-});
+}
 
 module.exports = router;
