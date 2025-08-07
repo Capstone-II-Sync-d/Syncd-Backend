@@ -119,7 +119,6 @@ router.get("/me/friends", authenticateJWT, async (req, res) => {
       where: {
         // or operator to check for any friendship where user1 OR user2 is the current user
         [Op.or]: [{ user1: userId }, { user2: userId }],
-        status: "accepted",
       },
       // Loads user details for both people in the friendship
       include: [
