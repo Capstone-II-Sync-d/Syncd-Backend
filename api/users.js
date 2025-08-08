@@ -20,10 +20,6 @@ router.get("/user/:id", authenticateJWT, async (req, res) => {
 
     const isOwner = parseInt(userId) === parseInt(requestingUserId);
 
-    if (userId === requestingUserId) {
-      isOwner = true;
-    }
-
     // Find the requested user with only public info by default
     const user = await User.findByPk(userId, {
       attributes: ["id", "username", "profilePicture"],
@@ -130,6 +126,41 @@ router.get("/me/friends", authenticateJWT, async (req, res) => {
     // maps through friendships to find the friend of the current user
     const friends = friendsConnected.map((friendship) => ({
       status: friendship.status,
+      user:
+        friendship.user1 === userId ? friendship.secondary : friendship.primary,
+    }));
+
+    // Send back status of 200 if everything goes through and send the friends
+    res.status(200).json(friends);
+  } catch (error) {
+    console.error("Error fetching friends:", error);
+    res.status(500).json({ error: "Failed to fetch friends" });
+  }
+});
+
+//|-----------------------------------------------------------------|
+// Get all friendships of a user by id[Protected]
+router.get("/user/:id/friends", authenticateJWT, async (req, res) => {
+  try {
+    // Get user ID from auth token
+    const userId = req.params.id;
+
+    // Find all friends of the current user
+    const friendsConnected = await FriendShip.findAll({
+      where: {
+        // or operator to check for any friendship where user1 OR user2 is the current user
+        [Op.or]: [{ user1: userId }, { user2: userId }],
+      },
+      // Loads user details for both people in the friendship
+      include: [
+        { model: User, as: "primary" },
+        { model: User, as: "secondary" },
+      ],
+      status: "accepted",
+    });
+
+    // maps through friendships to find the friend of the current user
+    const friends = friendsConnected.map((friendship) => ({
       user:
         friendship.user1 === userId ? friendship.secondary : friendship.primary,
     }));
