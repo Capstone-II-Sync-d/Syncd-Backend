@@ -101,6 +101,42 @@ const initSocketServer = (server) => {
         }
       });
 
+      // ------------------------------------------------
+      // -- Simple Business follow/unfollow handler
+      // ------------------------------------------------
+      socket.on("business-follow", async ({ businessId, userId, action }) => {
+        try {
+          // Handle follow/unfollow
+          if (action === "follow") {
+            await Follow.findOrCreate({
+              where: { businessId, userId },
+            });
+          } else {
+            await Follow.destroy({
+              where: { businessId, userId },
+            });
+          }
+
+          // Get updated count
+          const followersCount = await Follow.count({ where: { businessId } });
+
+          // Update everyone viewing this business
+          io.to(`business-${businessId}`).emit(
+            "followers/amount",
+            followersCount
+          );
+
+          // Confirm action to user
+          socket.emit("follow-status", {
+            success: true,
+            isFollowing: action === "follow",
+          });
+        } catch (error) {
+          socket.emit("follow-status", {
+            success: false,
+            message: "Action failed",
+          });
+        }
       });
     });
   } catch (error) {
