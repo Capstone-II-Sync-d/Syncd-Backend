@@ -10,6 +10,20 @@ const { authenticateJWT } = require("../auth");
 //              **************|User Profile Routing|****************
 //|---------------------------------------------------------------------------------------|
 
+// Get basic info of all users
+router.get("/users", async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: ['id', 'username', 'profilePicture'],
+    });
+    res.status(200).send({ users: users });
+  } catch (error) {
+    console.error("Error fetching all users:", error);
+    res.status(500).json({ error: `Failed to fecth all users: ${error}`});
+  }
+})
+
+//|-----------------------------------------------------------------|
 // Get a specific user's information
 // If they are friends, get all information, if not only username
 router.get("/user/:id", authenticateJWT, async (req, res) => {
