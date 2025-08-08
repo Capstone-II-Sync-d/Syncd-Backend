@@ -6,9 +6,12 @@ let io;
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
+// -- Keep track of connected users
 const onlineUsers = [];
+
 const initSocketServer = (server) => {
   try {
+    // -- Create Socket.IO server with CORS configuration
     io = new Server(server, {
       cors: {
         origin: FRONTEND_URL,
@@ -16,82 +19,92 @@ const initSocketServer = (server) => {
         methods: ["GET", "POST", "PATCH", "DELETE"],
       },
     });
-    // Happens Whenever a user connects to a socket
+
+    // -- Listen for socket connections
     io.on("connection", (socket) => {
       console.log(`🔗 User ${socket.id} connected to sockets`);
 
+      // -- Handle user disconnecting
       socket.on("disconnect", () => {
         if (socket.userId) {
           const index = onlineUsers.findIndex((u) => u.id === socket.userId);
-          if (index !== -1) {
-            onlineUsers.splice(index, 1);
-          }
+          if (index !== -1) onlineUsers.splice(index, 1);
         }
         console.log(`🔗 User ${socket.id} disconnected from sockets`);
       });
 
-      // Add custom socket event handlers here
-
+      // -- Add connected user to onlineUsers list
       socket.on("userConnected", async (user) => {
-        // Take that Users informationa and add it to the online Users array
         onlineUsers.push(user);
       });
 
-      socket.on("friend-request", async (profileId, viewerId) => {
-        //Check if there is already a freiendship record between the two users
-        const friendship = await FriendShip.findOne({
-          where: {
-            [Op.or]: [
-              { user1: profileId, user2: viewerId },
-              { user1: viewerId, user2: profileId },
-            ],
-          },
-        });
-        //If there is, change stats to accepted
-        if (friendship) {
-          if ((friendship.stauts = "pending1"))
-            friendship.update({ status: "accepted" });
-          else if ((friendship.stauts = "pending2"))
-            friendship.update({ status: "accepted" });
-        } else if (!friendship)
-          FriendShip.create({
-            user1: viewerId,
-            user2: profileId,
-            status: "pending2",
+      // ------------------------------------------------
+      // -- Handle friend request creation or acceptance
+      // ------------------------------------------------
+
+      // Join profile rooms
+      socket.on("join-profile-room", (profileId) => {
+        socket.join(profileId);
+      });
+
+      socket.on("friend-request", async ({ profileId, viewerId }) => {
+        try {
+          const friendship = await FriendShip.findOne({
+            where: {
+              [Op.or]: [
+                { user1: profileId, user2: viewerId },
+                { user1: viewerId, user2: profileId },
+              ],
+            },
           });
 
-        // Find all friends of the current user
-        const friendsConnected = await FriendShip.findAll({
-          where: {
-            // or operator to check for any friendship where user1 OR user2 is the current user
-            [Op.or]: [
-              { user1: profileId, user2: viewerId },
-              { user1: viewerId, user2: profileId },
-            ],
-            status: "accepted",
-          },
-          // Loads user details for both people in the friendship
-          include: [
-            { model: User, as: "primary" },
-            { model: User, as: "secondary" },
-          ],
-        });
-
-        // maps through friendships to find the friend of the current user
-        const friends = friendsConnected.map((friendship) => {
-          if (friendship.user1 === viewerId) {
-            return friendship.secondary;
+          if (friendship) {
+            if (friendship.status === "accepted") {
+              // If already friends, delete the friendship (unfriend)
+              await friendship.destroy();
+            } else if (
+              friendship.status === "pending1" ||
+              friendship.status === "pending2"
+            ) {
+              // Accept pending friend request
+              await friendship.update({ status: "accepted" });
+            }
           } else {
-            return friendship.primary;
+            // Create new friend request
+            await FriendShip.create({
+              user1: viewerId,
+              user2: profileId,
+              status: "pending2",
+            });
           }
-        });
 
-        socket.emit("friendsList", friends);
+          // Fetch updated friends count
+          const friendsConnected = await FriendShip.findAll({
+            where: {
+              [Op.or]: [{ user1: profileId }, { user2: profileId }],
+              status: "accepted",
+            },
+            include: [
+              { model: User, as: "primary" },
+              { model: User, as: "secondary" },
+            ],
+          });
+
+          const friends = friendsConnected.map((f) =>
+            f.user1 === profileId ? f.secondary : f.primary
+          );
+
+          // Emit updated friend count to everyone viewing this profile
+          io.to(profileId).emit("friends/amount", friends.length);
+        } catch (err) {
+          console.error("Error in friend-request:", err);
+        }
+      });
+
       });
     });
   } catch (error) {
-    console.error("❌ Error initializing socket server:");
-    console.error(error);
+    console.error("❌ Error initializing socket server:", error);
   }
 };
 
