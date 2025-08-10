@@ -10,6 +10,20 @@ const { authenticateJWT } = require("../auth");
 //              **************|User Profile Routing|****************
 //|---------------------------------------------------------------------------------------|
 
+// Get basic info of all users
+router.get("/users", async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: ['id', 'username', 'profilePicture'],
+    });
+    res.status(200).send({ users: users });
+  } catch (error) {
+    console.error("Error fetching all users:", error);
+    res.status(500).json({ error: `Failed to fecth all users: ${error}`});
+  }
+})
+
+//|-----------------------------------------------------------------|
 // Get a specific user's information
 // If they are friends, get all information, if not only username
 router.get("/user/:id", authenticateJWT, async (req, res) => {
@@ -397,4 +411,29 @@ router.get("/business/:id/followers", async (req, res) => {
 });
 
 //|-------------------------------------------------------------------|
+// Get all businesses
+router.get("/businesses", async (req, res) => {
+  try {
+    const rawBusinesses = await Business.findAll({
+      include: User,
+    });
+    const businesses = rawBusinesses.map((business) => (
+      {
+        id: business.id,
+        name: business.name,
+        email: business.email,
+        bio: business.bio,
+        category: business.category,
+        icon: business.pictureUrl,
+        owner: `${business.user.firstName} ${business.user.lastName}`,
+        ownerId: business.ownerId,
+      }
+    ));
+    res.status(200).send(businesses);
+  } catch (error) {
+    console.error("Error getting all businesses:", error);
+    res.status(500).send({ error: `Failed to get all businesses: ${error}` });
+  }
+});
+
 module.exports = router;
