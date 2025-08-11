@@ -1,17 +1,13 @@
 const { Server } = require("socket.io");
-const { User, FriendShip } = require("./database");
+const { User, FriendShip, Follow } = require("./database");
 const { Op } = require("sequelize");
 
 let io;
-
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
-
-// -- Keep track of connected users
 const onlineUsers = [];
 
 const initSocketServer = (server) => {
   try {
-    // -- Create Socket.IO server with CORS configuration
     io = new Server(server, {
       cors: {
         origin: FRONTEND_URL,
@@ -20,123 +16,155 @@ const initSocketServer = (server) => {
       },
     });
 
-    // -- Listen for socket connections
-    io.on("connection", (socket) => {
-      console.log(`🔗 User ${socket.id} connected to sockets`);
+    // Initialize namespaces
+    const userSocket = io.of("/userProfile");
+    const businessSocket = io.of("/businessProfile");
 
-      // -- Handle user disconnecting
+    // -------------------- Main Namespace --------------------
+    io.on("connection", (socket) => {
+      console.log(`🔗 User connected to main namespace: ${socket.id}`);
+
+      socket.on("userConnected", (user) => {
+        socket.userId = user.id;
+        socket.join(`user:${user.id}`);
+        if (!onlineUsers.some((u) => u.id === user.id)) {
+          onlineUsers.push(user);
+        }
+        console.log(`👤 User ${user.id} connected to main namespace`);
+      });
+
       socket.on("disconnect", () => {
         if (socket.userId) {
           const index = onlineUsers.findIndex((u) => u.id === socket.userId);
           if (index !== -1) onlineUsers.splice(index, 1);
+          console.log(
+            `🔗 User ${socket.userId} disconnected from main namespace`
+          );
         }
-        console.log(`🔗 User ${socket.id} disconnected from sockets`);
       });
+    });
 
-      // -- Add connected user to onlineUsers list
-      socket.on("userConnected", async (user) => {
-        onlineUsers.push(user);
-      });
+    // -------------------- User Profile Namespace --------------------
+    userSocket.on("connection", (socket) => {
+      console.log(`🔗 User connected to userProfile namespace: ${socket.id}`);
 
-      // ------------------------------------------------
-      // -- Handle friend request creation or acceptance
-      // ------------------------------------------------
-
-      // Join profile rooms
       socket.on("join-profile-room", (profileId) => {
-        socket.join(profileId);
+        if (!profileId) return;
+        socket.join(`profile:${profileId}`);
+        console.log(`🚪 Joined profile room ${profileId}`);
       });
 
-      socket.on("friend-request", async ({ profileId, viewerId }) => {
+      socket.on("friend-request", async ({ profileId, viewerId, action }) => {
         try {
-          const friendship = await FriendShip.findOne({
-            where: {
-              [Op.or]: [
-                { user1: profileId, user2: viewerId },
-                { user1: viewerId, user2: profileId },
-              ],
-            },
+          const [user1, user2] =
+            viewerId < profileId
+              ? [viewerId, profileId]
+              : [profileId, viewerId];
+          let friendship = await FriendShip.findOne({
+            where: { user1, user2 },
           });
 
-          if (friendship) {
-            if (friendship.status === "accepted") {
-              // If already friends, delete the friendship (unfriend)
-              await friendship.destroy();
-            } else if (
-              friendship.status === "pending1" ||
-              friendship.status === "pending2"
-            ) {
-              // Accept pending friend request
-              await friendship.update({ status: "accepted" });
-            }
-          } else {
-            // Create new friend request
-            await FriendShip.create({
-              user1: viewerId,
-              user2: profileId,
-              status: "pending2",
+          if (action === "add" && !friendship) {
+            friendship = await FriendShip.create({
+              user1,
+              user2,
+              status: viewerId < profileId ? "pending2" : "pending1",
             });
+          } else if (
+            action === "accept" &&
+            friendship?.status.startsWith("pending")
+          ) {
+            await friendship.update({ status: "accepted" });
+          } else if (
+            ["cancel", "unfriend", "decline"].includes(action) &&
+            friendship
+          ) {
+            await friendship.destroy();
+            friendship = null;
           }
 
-          // Fetch updated friends count
-          const friendsConnected = await FriendShip.findAll({
-            where: {
-              [Op.or]: [{ user1: profileId }, { user2: profileId }],
-              status: "accepted",
-            },
-            include: [
-              { model: User, as: "primary" },
-              { model: User, as: "secondary" },
-            ],
-          });
+          const getCount = async (userId) => {
+            return FriendShip.count({
+              where: {
+                [Op.or]: [{ user1: userId }, { user2: userId }],
+                status: "accepted",
+              },
+            });
+          };
 
-          const friends = friendsConnected.map((f) =>
-            f.user1 === profileId ? f.secondary : f.primary
-          );
+          const [count1, count2] = await Promise.all([
+            getCount(user1),
+            getCount(user2),
+          ]);
+          const update = {
+            user1,
+            user2,
+            friendship,
+            status: friendship ? friendship.status : "none",
+            action,
+            friendsCount: profileId === user1 ? count1 : count2,
+          };
 
-          // Emit updated friend count to everyone viewing this profile
-          io.to(profileId).emit("friends/amount", friends.length);
+          userSocket
+            .to(`profile:${user1}`)
+            .to(`profile:${user2}`)
+            .emit("friendship-update", update);
+          userSocket.to(`profile:${user1}`).emit("friends/amount", count1);
+          userSocket.to(`profile:${user2}`).emit("friends/amount", count2);
         } catch (err) {
-          console.error("Error in friend-request:", err);
+          console.error("Friend request error:", err);
+          socket.emit("friend-error", { action, error: "Operation failed" });
         }
       });
 
-      // ------------------------------------------------
-      // -- Simple Business follow/unfollow handler
-      // ------------------------------------------------
+      socket.on("disconnect", () => {
+        console.log(
+          `🔗 User disconnected from userProfile namespace: ${socket.id}`
+        );
+      });
+    });
+
+    // -------------------- Business Profile Namespace --------------------
+    businessSocket.on("connection", (socket) => {
+      console.log(
+        `🔗 User connected to businessProfile namespace: ${socket.id}`
+      );
+
+      socket.on("join-business-room", (businessId) => {
+        if (!businessId) return;
+        socket.join(`business:${businessId}`);
+        console.log(`🏢 Joined business room ${businessId}`);
+      });
+
       socket.on("business-follow", async ({ businessId, userId, action }) => {
         try {
-          // Handle follow/unfollow
           if (action === "follow") {
-            await Follow.findOrCreate({
-              where: { businessId, userId },
-            });
+            await Follow.findOrCreate({ where: { businessId, userId } });
           } else {
-            await Follow.destroy({
-              where: { businessId, userId },
-            });
+            await Follow.destroy({ where: { businessId, userId } });
           }
 
-          // Get updated count
-          const followersCount = await Follow.count({ where: { businessId } });
-
-          // Update everyone viewing this business
-          io.to(`business-${businessId}`).emit(
-            "followers/amount",
-            followersCount
-          );
-
-          // Confirm action to user
+          const followingCount = await Follow.count({ where: { businessId } });
+          businessSocket
+            .to(`business:${businessId}`)
+            .emit("followers/amount", followingCount);
           socket.emit("follow-status", {
             success: true,
             isFollowing: action === "follow",
           });
         } catch (error) {
+          console.error("business-follow error:", error);
           socket.emit("follow-status", {
             success: false,
             message: "Action failed",
           });
         }
+      });
+
+      socket.on("disconnect", () => {
+        console.log(
+          `🔗 User disconnected from businessProfile namespace: ${socket.id}`
+        );
       });
     });
   } catch (error) {
