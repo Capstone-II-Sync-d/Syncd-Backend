@@ -14,14 +14,14 @@ const { authenticateJWT } = require("../auth");
 router.get("/users", async (req, res) => {
   try {
     const users = await User.findAll({
-      attributes: ['id', 'username', 'profilePicture'],
+      attributes: ["id", "username", "profilePicture"],
     });
     res.status(200).send({ users: users });
   } catch (error) {
     console.error("Error fetching all users:", error);
-    res.status(500).json({ error: `Failed to fecth all users: ${error}`});
+    res.status(500).json({ error: `Failed to fecth all users: ${error}` });
   }
-})
+});
 
 //|-----------------------------------------------------------------|
 // Get a specific user's information
@@ -244,7 +244,7 @@ router.get("/me/businesses", authenticateJWT, async (req, res) => {
 router.get("/user/:id/businesses", authenticateJWT, async (req, res) => {
   try {
     // Get user ID from auth token
-    const userId = req.user.id;
+    const userId = req.params.id;
     // Find all business by this owner
     const businesses = await Business.findAll({ where: { ownerId: userId } });
 
@@ -266,6 +266,26 @@ router.get("/me/following", authenticateJWT, async (req, res) => {
     const businessFollowing = await Follow.findAll({
       where: { userId: userId },
       include: Business,
+    });
+
+    // Send back status of 200 if everything goes through
+    res.status(200).json(businessFollowing);
+  } catch (error) {
+    console.error("Error fetching businesses a user follows:", error);
+    res.status(500).json({ error: "Failed to fetch followed businesses" });
+  }
+});
+
+//|-----------------------------------------------------------------|
+// Get all businesses current user follows [Protected]
+router.get("/user/:id/following", authenticateJWT, async (req, res) => {
+  try {
+    // Get user ID from auth token
+    const userId = req.params.id;
+    // Get all Follows for the current user
+    const businessFollowing = await Follow.findAll({
+      where: { userId: userId },
+      include: [Business],
     });
 
     // Send back status of 200 if everything goes through
@@ -310,7 +330,9 @@ router.get("/business/:id", async (req, res) => {
   const businessId = req.params.id;
   try {
     // Find the specific business with that id
-    const business = await Business.findByPk(businessId, { include: User });
+    const business = await Business.findByPk(businessId, {
+      include: [{ model: User }],
+    });
 
     if (!business) {
       return res.status(404).json({ error: "Business not found" });
@@ -400,7 +422,7 @@ router.get("/business/:id/followers", async (req, res) => {
     // Find all followers for this business
     const followers = await Follow.findAll({
       where: { businessId: business_id },
-      include: User,
+      include: [{ model: User }],
     });
 
     res.status(200).json(followers);
@@ -415,20 +437,18 @@ router.get("/business/:id/followers", async (req, res) => {
 router.get("/businesses", async (req, res) => {
   try {
     const rawBusinesses = await Business.findAll({
-      include: User,
+      include: [{ model: User }],
     });
-    const businesses = rawBusinesses.map((business) => (
-      {
-        id: business.id,
-        name: business.name,
-        email: business.email,
-        bio: business.bio,
-        category: business.category,
-        icon: business.pictureUrl,
-        owner: `${business.user.firstName} ${business.user.lastName}`,
-        ownerId: business.ownerId,
-      }
-    ));
+    const businesses = rawBusinesses.map((business) => ({
+      id: business.id,
+      name: business.name,
+      email: business.email,
+      bio: business.bio,
+      category: business.category,
+      icon: business.pictureUrl,
+      owner: `${business.user.firstName} ${business.user.lastName}`,
+      ownerId: business.ownerId,
+    }));
     res.status(200).send(businesses);
   } catch (error) {
     console.error("Error getting all businesses:", error);
