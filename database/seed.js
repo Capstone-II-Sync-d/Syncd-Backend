@@ -7,7 +7,8 @@ const {
   CalendarItem,
   Event,
   Attendee,
-  Reminder
+  Reminder,
+  Notification,
 } = require("./index");
 
 const seed = async () => {
@@ -515,6 +516,86 @@ const seed = async () => {
     ]);
 
     console.log(`📆 Created ${calendarItems.length} calendar items with ${events.length} corresponding events`);
+
+    const notifications = await Notification.bulkCreate([
+      // Accepted Friend Requests
+      {
+        userId: 1,
+        message: `${users[1].firstName} (${users[1].username}) accepted your friend request!`,
+        type: "common",
+      },
+      {
+        userId: 1,
+        message: `${users[2].firstName} (${users[2].username}) accepted your friend request!`,
+        type: "common",
+      },
+      {
+        userId: 1,
+        message: `${users[3].firstName} (${users[3].username}) accepted your friend request!`,
+        type: "common",
+      },
+      {
+        userId: 2,
+        message: `${users[3].firstName} (${users[3].username}) accepted your friend request!`,
+        type: "common",
+      },
+      {
+        userId: 3,
+        message: `${users[1].firstName} (${users[1].username}) accepted your friend request!`,
+        type: "common",
+      },
+      {
+        userId: 4,
+        message: `${users[2].firstName} (${users[2].username}) accepted your friend request!`,
+        type: "common",
+      },
+      {
+        userId: 8,
+        message: `${users[5].firstName} (${users[5].username}) accepted your friend request!`,
+        type: "common",
+      },
+      {
+        userId: 9,
+        message: `${users[10].firstName} (${users[10].username}) accepted your friend request!`,
+        type: "common",
+      },
+      {
+        userId: 14,
+        message: `${users[12].firstName} (${users[12].username}) accepted your friend request!`,
+        type: "common",
+      },
+      {
+        userId: 14,
+        message: `${users[14].firstName} (${users[14].username}) accepted your friend request!`,
+        type: "common",
+      },
+
+      // Friend Requests Pending 1
+      {
+        userId: 6,
+        message: `${users[4].username} sent you a friend request!`,
+        type: "request",
+      },
+      {
+        userId: 12,
+        message: `${users[9].username} sent you a friend request!`,
+        type: "request",
+      },
+
+      // Friend Requests Pending 2
+      {
+        userId: 5,
+        message: `${users[6].username} sent you a friend request!`,
+        type: "request",
+      },
+      {
+        userId: 9,
+        message: `${users[10].username} sent you a friend request!`,
+        type: "request",
+      },
+    ]);
+
+    console.log(`🔔 Created ${notifications.length} notifications`);
 
     const attendees = await Attendee.bulkCreate([
       // Business Event: Weekly Team Sync (itemId: 1, owner: userId 3)
