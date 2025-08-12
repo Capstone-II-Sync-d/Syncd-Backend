@@ -19,7 +19,7 @@ const Notification = db.define("notifications", {
     },
   },
   type: {
-    type: DataTypes.ENUM(['request', 'reminder', 'event', 'invite']),
+    type: DataTypes.ENUM(['common', 'request', 'reminder', 'event', 'invite']),
     allowNull: false,
   },
 });
