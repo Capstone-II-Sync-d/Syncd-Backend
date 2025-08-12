@@ -60,7 +60,7 @@ router.get("/user/:id", authenticateJWT, async (req, res) => {
     const friendship = await FriendShip.findOne({
       where: {
         [Op.or]: [
-          { user1: idd, user2: requestingUserId },
+          { user1: id, user2: requestingUserId },
           { user1: requestingUserId, user2: id },
         ],
         status: "accepted",
@@ -242,24 +242,83 @@ router.delete("/user/item/:itemId", authenticateJWT, async (req, res) => {
 //|=====================================================================================|
 //       **************|Business Caldendar Item Routing (Bonnie)|****************
 //|=====================================================================================|
-
+//Helper function to check if user owns the business
+const checkBusinessOwnership = async (businessId, userId) => {
+  const business = await Business.findByPk(businessId);
+  if (!business) {
+    return { authorized: false, error: "Business not found" };
+  }
+  if (business.ownerId !== userId) {
+    return {
+      authorized: false,
+      error: "Unauthorized: You must be the business owner",
+    };
+  }
+  return { authorized: true, business };
+};
 //|-----------------------------------------------------------------|
+//Get all calendar items for a specific business [Protected]
+router.get("/business/:id", authenticateJWT, async (req, res) => {
+  const id = req.params.id;
+  const userId = req.user.id;
+
+  try {
+    const authCheck = await checkBusinessOwnership(id, userId);
+    if (!authCheck.authorized) {
+      return res.status(403).json({ error: authCheck.error });
+    }
+    const calendarItems = await CalendarItem.findAll({
+      include: [
+        {
+          model: Event,
+          where: { businessId: id },
+          required: true,
+          include: [{ model: Business }],
+        },
+        {
+          model: User,
+          attributes: ["id", "firstName", "lastName", "username"],
+        },
+      ],
+      order: [["start", "ASC"]],
+    });
+
+    res.status(200).json(calendarItems);
+  } catch (error) {
+    console.error("Error fetching business calendar items:", error);
+    res.status(500).json({
+      error: `Failed to fetch calendar items for business ${id}`,
+    });
+  }
+});
 // Get all calendar items for a specific business
-router.get("/business/:id", async (req, res) => {
+router.get("/business/:id/public", async (req, res) => {
   //get business id from URL parameters
   const id = req.params.id;
   try {
-    //find all calendar items created by this business
+    //verify business exists
+    const business = await Business.findByPk(id);
+    if (!business) {
+      return res.status(404).json({ error: "Business not found" });
+    }
+    //Find all PUBLIC calendar items for this business
     const calendarItems = await CalendarItem.findAll({
-      // Filter to only get calendar items that belong to this specific business
-      where: { businessId: id },
+      where: { public: true },
 
       // Load business information as well
       include: [
         {
-          model: Business,
-          // Only get these specific fields from the business table
-          attributes: ["id", "name"],
+          model: Event,
+          where: {
+            businessId: id,
+            published: true,
+          },
+          required: true,
+          include: [{ model: Business }],
+        },
+        {
+          model: User,
+          attributes: ["id", "firstName", "lastName", "username"],
         },
       ],
 
@@ -271,47 +330,51 @@ router.get("/business/:id", async (req, res) => {
     res.status(200).json(calendarItems);
   } catch (error) {
     // Log error to the console and send failure response
-    console.error("Error fetching business's calendar items:", error);
-    res
-      .status(500)
-      .json({ error: `Failed to fetch calendar items for business ${id}` });
+    console.error("Error fetching public business's calendar items:", error);
+    res.status(500).json({
+      error: `Failed to fetch public calendar items for business ${id}`,
+    });
   }
 });
-//|-----------------------------------------------------------------|
-// Get a specific business calendar item by id
-
-router.get("/business/:id/:itemId", async (req, res) => {
-  // Get business ID and calendar item ID from URL parameters
+///|-----------------------------------------------------------------|
+// Get a specific business calendar item by id [Protected]
+router.get("/business/:id/:itemId", authenticateJWT, async (req, res) => {
   const businessId = req.params.id;
   const itemId = req.params.itemId;
+  const userId = req.user.id;
 
   try {
-    // Find the calendar item with matching ID that belongs to this business
+    // Check if user owns the business FIRST
+    const authCheck = await checkBusinessOwnership(businessId, userId);
+    if (!authCheck.authorized) {
+      return res.status(403).json({ error: authCheck.error });
+    }
+
+    // Find the calendar item
     const calendarItem = await CalendarItem.findOne({
-      where: {
-        id: itemId,
-        businessId: businessId, // Ensure the item belongs to this business
-      },
+      where: { id: itemId },
       include: [
         {
+          model: Event,
+          where: { businessId: businessId },
+          required: true,
+        },
+        {
           model: Business,
-          attributes: ["id", "name"], // Only include limited business details
+          attributes: ["id", "name"],
         },
       ],
     });
 
-    // If no item is found, send a 404 Not Found response
     if (!calendarItem) {
       return res.status(404).json({
         error: `No calendar item with ID ${itemId} found for business ${businessId}`,
       });
     }
 
-    // Send success response with the found calendar item
     res.status(200).json(calendarItem);
   } catch (error) {
-    // Log error and send failure response
-    console.error("Error fetching specific business calendar item:", error);
+    console.error("Error fetching business calendar item:", error);
     res.status(500).json({
       error: `Failed to fetch calendar item ${itemId} for business ${businessId}`,
     });
@@ -320,18 +383,28 @@ router.get("/business/:id/:itemId", async (req, res) => {
 
 //|-----------------------------------------------------------------|
 // Create a new calendar item for a business
-router.post("/business/:id", async (req, res) => {
+router.post("/business/:id", authenticateJWT, async (req, res) => {
   // Get business ID from URL parameters
   const businessId = req.params.id;
+  const userId = req.user.id;
 
   try {
+    const authCheck = await checkBusinessOwnership(businessId, userId);
+    if (!authCheck.authorized) {
+      return res.status(403).json({ error: authCheck.error });
+    }
     // Get the calendar item details from the request body
     const calendarItemData = req.body;
 
     // Create a new calendar item and attach the businessId to it
     const newItem = await CalendarItem.create({
       ...calendarItemData,
+      userId: userId,
+    });
+    await Event.create({
+      itemId: newItem.id,
       businessId: businessId,
+      published: false
     });
 
     // Send success response with the newly created calendar item
@@ -344,15 +417,21 @@ router.post("/business/:id", async (req, res) => {
     });
   }
 });
-
 //|-----------------------------------------------------------------|
+
 // Edit a business calendar item by id
-router.patch("/business/:id/:itemId", async (req, res) => {
+router.patch("/business/:id/:itemId", authenticateJWT, async (req, res) => {
   // Get business ID and calendar item ID from URL parameters
   const businessId = req.params.id;
   const itemId = req.params.itemId;
+  const userId = req.user.id;
 
   try {
+    const authCheck = await checkBusinessOwnership(businessId, userId);
+    if (!authCheck.authorized) {
+      return res.status(403).json({ error: authCheck.error });
+    }
+
     // Find the calendar item with matching ID and businessId
     const calendarItem = await CalendarItem.findOne({
       where: {
@@ -385,12 +464,18 @@ router.patch("/business/:id/:itemId", async (req, res) => {
 //|-----------------------------------------------------------------|
 // Delete a business calendar item by id
 
-router.delete("/business/:id/:itemId", async (req, res) => {
+router.delete("/business/:id/:itemId", authenticateJWT, async (req, res) => {
   // Get business ID and calendar item ID from URL parameters
   const businessId = req.params.id;
   const itemId = req.params.itemId;
+  const userId = req.user.id;
 
   try {
+    const authCheck = await checkBusinessOwnership(businessId, userId);
+    if (!authCheck.authorized) {
+      return res.status(403).json({ error: authCheck.error });
+    }
+
     // Find the calendar item with matching ID and businessId
     const calendarItem = await CalendarItem.findOne({
       where: {
