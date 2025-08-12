@@ -7,6 +7,7 @@ const Follow = require("./follow");
 const Attendee = require("./attendee");
 const Event = require("./event");
 const Reminder = require("./reminders");
+const Notification = require("./notification");
 
 // -------------- Associations -----------------//
 // User owns a business
@@ -97,6 +98,15 @@ Follow.belongsTo(User, {
   foreignKey: 'userId'
 });
 
+//------------------------------------------
+// User has notifications
+User.hasMany(Notification, {
+  foreignKey: 'userId',
+});
+Notification.belongsTo(User, {
+  foreignKey: 'userId',
+}),
+
 module.exports = {
   db,
   User,
@@ -107,4 +117,5 @@ module.exports = {
   Follow,
   Attendee,
   Reminder,
+  Notification,
 };
