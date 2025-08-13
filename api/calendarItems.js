@@ -8,7 +8,6 @@ const {
   Event,
   Attendee,
   Reminder,
-  Event,
   FriendShip,
 } = require("../database");
 // Import Sequelize operators
