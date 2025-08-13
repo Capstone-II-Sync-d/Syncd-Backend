@@ -8,6 +8,7 @@ const {
   Event,
   Attendee,
   Reminder,
+  Event,
   FriendShip,
 } = require("../database");
 // Import Sequelize operators
@@ -336,6 +337,7 @@ router.get("/business/:id/public", async (req, res) => {
     });
   }
 });
+
 ///|-----------------------------------------------------------------|
 // Get a specific business calendar item by id [Protected]
 router.get("/business/:id/:itemId", authenticateJWT, async (req, res) => {
@@ -463,7 +465,6 @@ router.patch("/business/:id/:itemId", authenticateJWT, async (req, res) => {
 
 //|-----------------------------------------------------------------|
 // Delete a business calendar item by id
-
 router.delete("/business/:id/:itemId", authenticateJWT, async (req, res) => {
   // Get business ID and calendar item ID from URL parameters
   const businessId = req.params.id;
@@ -506,7 +507,75 @@ router.delete("/business/:id/:itemId", authenticateJWT, async (req, res) => {
     });
   }
 });
+
 //|-------------------------------------------------------------------|
+// Get all public events
+router.get("/events", async (req, res) => {
+  try {
+    const events = await getEvents(false);
+    res.status(200).send(events);
+  } catch (error) {
+    console.error("Error getting all public events:", error);
+    res.status(500).json({
+      error: `Failed to get all public events`,
+    });
+  }
+});
+
+//|-------------------------------------------------------------------|
+// Get all future public events
+router.get("/events/future", async (req, res) => {
+  try {
+    const events = await getEvents(true);
+    res.status(200).send(events);
+  } catch (error) {
+    console.error("Error getting all future public events:", error);
+    res.status(500).json({
+      error: `Failed to get all future public events`,
+    });
+  }
+});
+
+//|-------------------------------------------------------------------|
+// Helper function to get events using a flag for only future events 
+// or all events
+const getEvents = async (onlyFuture) => {
+  const whereOptions = { public: true }
+  if (onlyFuture) {
+    const now = new Date();
+    whereOptions.start = { [Op.gt]: now };
+  }
+
+  try {
+    const rawEvents = await Event.findAll({
+      where: { published: true },
+      include: [
+        { model: Business },
+        { 
+          model: CalendarItem,
+          where: whereOptions,
+          include: [ { model: User } ],
+        },
+      ],
+      order: [[CalendarItem, 'start']],
+    });
+    const events = rawEvents.map((event) => ({
+      id: event.id,
+      title: event.calendar_item.title,
+      description: event.calendar_item.description,
+      location: event.calendar_item.location,
+      startTime: event.calendar_item.start,
+      endTime: event.calendar_item.end,
+      business: event.business ? event.business.name : null,
+      chatLink: event.chatLink,
+      creatorName: `${event.calendar_item.user.firstName} ${event.calendar_item.user.lastName}`,
+      creatorUsername: event.calendar_item.user.username,
+    }));
+    return events;
+  } catch (error) {
+    throw error;
+  }
+}
 
 //|=====================================================================================|
 //               **************|Events Routing|****************
