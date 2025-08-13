@@ -9,6 +9,7 @@ const {
   Attendee,
   Reminder,
   Notification,
+  RequestNotification,
 } = require("./index");
 
 const seed = async () => {
@@ -519,80 +520,42 @@ const seed = async () => {
 
     const notifications = await Notification.bulkCreate([
       // Accepted Friend Requests
-      {
-        userId: 1,
-        message: `${users[1].firstName} (${users[1].username}) accepted your friend request!`,
-        type: "common",
-      },
-      {
-        userId: 1,
-        message: `${users[2].firstName} (${users[2].username}) accepted your friend request!`,
-        type: "common",
-      },
-      {
-        userId: 1,
-        message: `${users[3].firstName} (${users[3].username}) accepted your friend request!`,
-        type: "common",
-      },
-      {
-        userId: 2,
-        message: `${users[3].firstName} (${users[3].username}) accepted your friend request!`,
-        type: "common",
-      },
-      {
-        userId: 3,
-        message: `${users[1].firstName} (${users[1].username}) accepted your friend request!`,
-        type: "common",
-      },
-      {
-        userId: 4,
-        message: `${users[2].firstName} (${users[2].username}) accepted your friend request!`,
-        type: "common",
-      },
-      {
-        userId: 8,
-        message: `${users[5].firstName} (${users[5].username}) accepted your friend request!`,
-        type: "common",
-      },
-      {
-        userId: 9,
-        message: `${users[10].firstName} (${users[10].username}) accepted your friend request!`,
-        type: "common",
-      },
-      {
-        userId: 14,
-        message: `${users[12].firstName} (${users[12].username}) accepted your friend request!`,
-        type: "common",
-      },
-      {
-        userId: 14,
-        message: `${users[14].firstName} (${users[14].username}) accepted your friend request!`,
-        type: "common",
-      },
-
+      { userId: 1, read: true },
+      { userId: 1, read: false },
+      { userId: 1, read: true },
+      { userId: 2, read: false },
+      { userId: 3, read: false },
+      { userId: 4, read: false },
+      { userId: 8, read: false },
+      { userId: 9, read: false },
+      { userId: 14, read: false },
+      { userId: 14, read: false },
+      
       // Friend Requests Pending 1
-      {
-        userId: 6,
-        message: `${users[4].username} sent you a friend request!`,
-        type: "request",
-      },
-      {
-        userId: 12,
-        message: `${users[9].username} sent you a friend request!`,
-        type: "request",
-      },
-
+      { userId: 6, read: false },
+      { userId: 12, read: false },
+      
       // Friend Requests Pending 2
-      {
-        userId: 5,
-        message: `${users[6].username} sent you a friend request!`,
-        type: "request",
-      },
-      {
-        userId: 9,
-        message: `${users[10].username} sent you a friend request!`,
-        type: "request",
-      },
+      { userId: 5, read: false },
+      { userId: 9, read: false },
+    ]);
+
+    const request_notifications = await RequestNotification.bulkCreate([
+      { notificationId: 1, friendshipId: 1 },
+      { notificationId: 2, friendshipId: 2 },
+      { notificationId: 3, friendshipId: 3 },
+      { notificationId: 4, friendshipId: 5 },
+      { notificationId: 5, friendshipId: 4 },
+      { notificationId: 6, friendshipId: 6 },
+      { notificationId: 7, friendshipId: 9 },
+      { notificationId: 8, friendshipId: 10 },
+      { notificationId: 9, friendshipId: 13 },
+      { notificationId: 10, friendshipId: 14 },
+      
+      { notificationId: 11, friendshipId: 7 },
+      { notificationId: 12, friendshipId: 12 },
+      { notificationId: 13, friendshipId: 8 },
+      { notificationId: 14, friendshipId: 11 },
     ]);
 
     console.log(`🔔 Created ${notifications.length} notifications`);
