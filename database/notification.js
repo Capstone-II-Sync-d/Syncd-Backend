@@ -11,16 +11,10 @@ const Notification = db.define("notifications", {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  message: {
-    type: DataTypes.STRING,
+  read: {
+    type: DataTypes.BOOLEAN,
     allowNull: false,
-    validate: {
-      notEmpty: true,
-    },
-  },
-  type: {
-    type: DataTypes.ENUM(['common', 'request', 'reminder', 'event', 'invite']),
-    allowNull: false,
+    defaultValue: false,
   },
 });
 
