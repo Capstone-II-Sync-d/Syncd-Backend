@@ -256,6 +256,7 @@ const checkBusinessOwnership = async (businessId, userId) => {
   }
   return { authorized: true, business };
 };
+
 //|-----------------------------------------------------------------|
 //Get all calendar items for a specific business [Protected]
 router.get("/business/:id", authenticateJWT, async (req, res) => {
@@ -291,6 +292,7 @@ router.get("/business/:id", authenticateJWT, async (req, res) => {
     });
   }
 });
+
 // Get all calendar items for a specific business
 router.get("/business/:id/public", async (req, res) => {
   //get business id from URL parameters
