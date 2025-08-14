@@ -4,16 +4,6 @@ const { authenticateJWT } = require("../auth");
 const { RequestNotification, ReminderNotification, EventNotification, FriendShip, User } = require("../database");
 const router = express.Router();
 
-router.get("/", async (req, res) => {
-  try {
-    const notifs = await Notification.findAll();
-    res.status(200).send(notifs);
-  } catch (error) {
-    console.log(error);
-    res.status(500).send({ error: `Error getting all notifications: ${error}` });
-  }
-});
-
 router.get("/me", authenticateJWT, async (req, res) => {
   const userId = req.user.id;
   try {
