@@ -7,6 +7,10 @@ const Follow = require("./follow");
 const Attendee = require("./attendee");
 const Event = require("./event");
 const Reminder = require("./reminders");
+const Notification = require("./notification");
+const RequestNotification = require("./request_notification");
+const ReminderNotification = require("./reminder_notification");
+const EventNotification = require("./event_notification");
 
 // -------------- Associations -----------------//
 // User owns a business
@@ -97,6 +101,69 @@ Follow.belongsTo(User, {
   foreignKey: 'userId'
 });
 
+//------------------------------------------
+// User has notifications
+User.hasMany(Notification, {
+  foreignKey: 'userId',
+});
+Notification.belongsTo(User, {
+  foreignKey: 'userId',
+}),
+
+//------------------------------------------
+// Notification can be a friend request notification
+Notification.hasOne(RequestNotification, {
+  foreignKey: 'notificationId',
+});
+RequestNotification.belongsTo(Notification, {
+  foreignKey: 'notificationId',
+});
+
+//------------------------------------------
+// Request notifications reference a friendship
+FriendShip.hasMany(RequestNotification, {
+  foreignKey: 'friendshipId',
+});
+RequestNotification.belongsTo(FriendShip, {
+  foreignKey: 'friendshipId',
+});
+
+//------------------------------------------
+// Notification can be a reminder notification
+Notification.hasOne(ReminderNotification, {
+  foreignKey: 'notificationId',
+});
+ReminderNotification.belongsTo(Notification, {
+  foreignKey: 'notificationId',
+});
+
+//------------------------------------------
+// Reminder notifications reference a reminder
+Reminder.hasOne(ReminderNotification, {
+  foreignKey: 'reminderId',
+});
+ReminderNotification.belongsTo(Reminder, {
+  foreignKey: 'reminderId',
+});
+
+//------------------------------------------
+// Notification can be an event notification
+Notification.hasOne(EventNotification, {
+  foreignKey: 'notificationId',
+});
+EventNotification.belongsTo(Notification, {
+  foreignKey: 'notificationId',
+});
+
+//------------------------------------------
+// Event notifications reference an event
+Event.hasMany(EventNotification, {
+  foreignKey: 'eventId',
+});
+EventNotification.belongsTo(Event, {
+  foreignKey: 'eventId',
+});
+
 module.exports = {
   db,
   User,
@@ -107,4 +174,8 @@ module.exports = {
   Follow,
   Attendee,
   Reminder,
+  Notification,
+  RequestNotification,
+  ReminderNotification,
+  EventNotification,
 };

@@ -2,20 +2,30 @@ const { DataTypes } = require("sequelize");
 const db = require("./db");
 
 const FriendShip = db.define("friendship", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   user1: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    primaryKey: true,
   },
   user2: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    primaryKey: true,
   },
   status: {
     type: DataTypes.ENUM(["pending1", "pending2", "accepted"]),
     allowNull: false,
   },
+}, {
+  indexes: [
+    {
+      unique: true,
+      fields: ['user1', 'user2'],
+    },
+  ],
 }, {
   validate: {
     idsInOrder() {

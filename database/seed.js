@@ -7,7 +7,9 @@ const {
   CalendarItem,
   Event,
   Attendee,
-  Reminder
+  Reminder,
+  Notification,
+  RequestNotification,
 } = require("./index");
 
 const seed = async () => {
@@ -515,6 +517,48 @@ const seed = async () => {
     ]);
 
     console.log(`📆 Created ${calendarItems.length} calendar items with ${events.length} corresponding events`);
+
+    const notifications = await Notification.bulkCreate([
+      // Accepted Friend Requests
+      { userId: 1, read: true },
+      { userId: 1, read: false },
+      { userId: 1, read: true },
+      { userId: 2, read: false },
+      { userId: 3, read: false },
+      { userId: 4, read: false },
+      { userId: 8, read: false },
+      { userId: 9, read: false },
+      { userId: 14, read: false },
+      { userId: 14, read: false },
+      
+      // Friend Requests Pending 1
+      { userId: 6, read: false },
+      { userId: 12, read: false },
+      
+      // Friend Requests Pending 2
+      { userId: 5, read: false },
+      { userId: 9, read: false },
+    ]);
+
+    const request_notifications = await RequestNotification.bulkCreate([
+      { notificationId: 1, friendshipId: 1 },
+      { notificationId: 2, friendshipId: 2 },
+      { notificationId: 3, friendshipId: 3 },
+      { notificationId: 4, friendshipId: 5 },
+      { notificationId: 5, friendshipId: 4 },
+      { notificationId: 6, friendshipId: 6 },
+      { notificationId: 7, friendshipId: 9 },
+      { notificationId: 8, friendshipId: 10 },
+      { notificationId: 9, friendshipId: 13 },
+      { notificationId: 10, friendshipId: 14 },
+      
+      { notificationId: 11, friendshipId: 7 },
+      { notificationId: 12, friendshipId: 12 },
+      { notificationId: 13, friendshipId: 8 },
+      { notificationId: 14, friendshipId: 11 },
+    ]);
+
+    console.log(`🔔 Created ${notifications.length} notifications`);
 
     const attendees = await Attendee.bulkCreate([
       // Business Event: Weekly Team Sync (itemId: 1, owner: userId 3)
