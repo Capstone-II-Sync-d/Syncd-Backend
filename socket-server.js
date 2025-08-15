@@ -42,6 +42,71 @@ const initSocketServer = (server) => {
           );
         }
       });
+
+      /************************************************************************************/
+      /* Response to a friend request event                                               */
+      /************************************************************************************/
+      /* senderId: The ID of the user sending this event                                  */
+      /* receiverId: The ID of the user meant to receive this event                       */
+      /* friendshipId: The ID of the frienship to be modified, if any                     */
+      /* action: The action to take with the friendship (create, accept, decline, remove) */
+      /************************************************************************************/
+      socket.on("friend-request", async({ senderId, receiverId, friendshipId, action }) => {
+        const senderIsUser1 = senderId < receiverId;
+        try {
+          const friendship = await FriendShip.findByPk(friendshipId);
+          switch (action) {
+            /* Sender has added Receiver as a friend */
+            case 'create':
+              if (friendship)
+                throw new Error("Cannot create new friend request, relation already exists");
+
+              const info = {
+                user1: senderIsUser1 ? senderId : receiverId,
+                user2: senderIsUser1 ? receiverId : senderId,
+                status: senderIsUser1 ? "pending2" : "pending1",
+              }
+              const newFriendship = await FriendShip.create(info);
+              io.to(`user:${receiverId}`).emit("friend-request-received", newFriendship);
+              return;
+            /* Sender has accepted Receiver's friend request */
+            case 'accept':
+              if (!friendship)
+                throw new Error("Cannot accept friend request, relation does not exist");
+
+              if ((senderIsUser1 && friendship.status === 'pending2') || 
+                  (!senderIsUser1 && friendship.status === 'pending1'))
+                throw new Error("Cannot accept friend request, you are not the recipient");
+              
+              await friendship.update({ status: 'accepted' });
+              io.to(`user:${receiverId}`).emit("friend-request-accepted", friendship);
+              return;
+            /* Sender has declined Receiver's friend request (fall through) */
+            case 'decline':
+            /* Sender has removed the Receiver as a friend (fall through) */
+            case 'remove':
+            /* Sender has canceled their friend request to Receiver */
+            case 'cancel':
+              if (!friendship)
+                throw new Error("Cannot delete friendship, relation does not exist");
+
+              if ((action === 'decline') &&
+                  (senderIsUser1 && friendship.status === 'pending2') || 
+                  (!senderIsUser1 && friendship.status === 'pending1'))
+                throw new Error("Cannot decline friend request, you are not the recipient");
+
+              if ((action === 'cancel') &&
+                  (senderIsUser1 && friendship.status === 'pending1') ||
+                  (!senderIsUser1 && friendship.status === 'pending2'))
+                throw new Error("Cannot cancel friend request, you are not the sender");
+              
+              await friendship.destroy();
+              io.to(`user:${receiverId}`).emit("friendship-deleted", friendship);
+          }
+        } catch (error) {
+          io.to(`user:${senderId}`).emit("friendship-error", { action, error });
+        }
+      })
     });
 
     // -------------------- User Profile Namespace --------------------
