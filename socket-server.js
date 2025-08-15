@@ -1,69 +1,130 @@
 const { Server } = require("socket.io");
-const { User, FriendShip, Follow } = require("./database");
+const { User, FriendShip, Follow, Message } = require("./database");
 const { Op } = require("sequelize");
 
-let io;
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
-const onlineUsers = [];
+let io; // Socket.io server instance
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000"; // CORS origin
+const onlineUsers = []; // Tracks currently connected users
 
+// -------------------- Helper Functions --------------------
+
+// Fetch all messages between two users, sorted by creation time (ascending)
+const getMessagesBetweenUsers = async (userId1, userId2) => {
+  return Message.findAll({
+    where: {
+      [Op.or]: [
+        { senderId: userId1, receiverId: userId2 },
+        { senderId: userId2, receiverId: userId1 },
+      ],
+    },
+    order: [["createdAt", "ASC"]],
+  });
+};
+
+// -------------------- Main Socket Server Initialization --------------------
 const initSocketServer = (server) => {
   try {
     io = new Server(server, {
       cors: {
-        origin: FRONTEND_URL,
-        credentials: true,
+        origin: FRONTEND_URL, // Allow frontend origin
+        credentials: true, // Allow cookies/auth headers
         methods: ["GET", "POST", "PATCH", "DELETE"],
       },
     });
-
-    // Initialize namespaces
-    const userSocket = io.of("/userProfile");
-    const businessSocket = io.of("/businessProfile");
 
     // -------------------- Main Namespace --------------------
     io.on("connection", (socket) => {
       console.log(`🔗 User connected to main namespace: ${socket.id}`);
 
+      // Track connected users
       socket.on("userConnected", (user) => {
-        socket.userId = user.id;
-        socket.join(`user:${user.id}`);
+        if (!user?.id) return;
+        socket.userId = user.id; // Attach userId to socket
+        socket.join(`user:${user.id}`); // Join personal room for private events
         if (!onlineUsers.some((u) => u.id === user.id)) {
-          onlineUsers.push(user);
+          onlineUsers.push(user); // Add user to online users list
         }
         console.log(`👤 User ${user.id} connected to main namespace`);
       });
 
-      socket.on("disconnect", () => {
-        if (socket.userId) {
-          const index = onlineUsers.findIndex((u) => u.id === socket.userId);
-          if (index !== -1) onlineUsers.splice(index, 1);
-          console.log(
-            `🔗 User ${socket.userId} disconnected from main namespace`
+      // -------------------- Message Rooms --------------------
+      socket.on("join-message-room", async (roomName, user, userClicked) => {
+        if (!user?.id || !userClicked?.id) {
+          return;
+        }
+
+        socket.join(roomName); // Join chat room
+
+        try {
+          const messages = await getMessagesBetweenUsers(
+            user.id,
+            userClicked.id
           );
+          io.to(roomName).emit("receive-message", messages); // Send all messages in room
+        } catch (err) {
+          console.error("Error fetching messages:", err);
         }
       });
-    });
 
-    // -------------------- User Profile Namespace --------------------
-    userSocket.on("connection", (socket) => {
-      console.log(`🔗 User connected to userProfile namespace: ${socket.id}`);
+      socket.on("leave-message-room", (roomName) => {
+        socket.leave(roomName);
+        console.log(`User left room ${roomName}`);
+      });
 
+      // Sending a new message
+      socket.on(
+        "sending-message",
+        async (messageText, user, userClicked, room) => {
+          if (!user?.id || !userClicked?.id || !room) return;
+
+          try {
+            // Save new message to database
+            const newMessage = await Message.create({
+              senderId: user.id,
+              receiverId: userClicked.id,
+              content: messageText,
+            });
+
+            // Emit only the new message to everyone in the room
+            io.to(room).emit("receive-message", newMessage);
+          } catch (err) {
+            console.error("Message send error:", err);
+          }
+        }
+      );
+
+      // -------------------- Profile Rooms --------------------
       socket.on("join-profile-room", (profileId) => {
         if (!profileId) return;
-        socket.join(`profile:${profileId}`);
+        socket.join(`profile:${profileId}`); // Join profile-specific room
         console.log(`🚪 Joined profile room ${profileId}`);
       });
 
+      socket.on("leave-profile-room", (profileId) => {
+        if (!profileId) return;
+        const roomName = `profile:${profileId}`;
+        socket.leave(roomName);
+        console.log(`🚪 User ${socket.userId} left profile room ${roomName}`);
+      });
+
+      // -------------------- Friend Request Handling --------------------
       socket.on("friend-request", async ({ profileId, viewerId, action }) => {
         try {
+          console.log(
+            `Friend request action: ${action} between ${viewerId} and ${profileId}`
+          );
+
+          // Ensure consistent ordering of user IDs
           const [user1, user2] =
             viewerId < profileId
               ? [viewerId, profileId]
               : [profileId, viewerId];
+
           let friendship = await FriendShip.findOne({
             where: { user1, user2 },
           });
 
+          // Handle friend request actions
           if (action === "add" && !friendship) {
             friendship = await FriendShip.create({
               user1,
@@ -83,6 +144,7 @@ const initSocketServer = (server) => {
             friendship = null;
           }
 
+          // Count accepted friends for each user
           const getCount = async (userId) => {
             return FriendShip.count({
               where: {
@@ -91,45 +153,58 @@ const initSocketServer = (server) => {
               },
             });
           };
-
           const [count1, count2] = await Promise.all([
             getCount(user1),
             getCount(user2),
           ]);
-          const update = {
-            user1,
-            user2,
-            friendship,
-            status: friendship ? friendship.status : "none",
-            action,
-            friendsCount: profileId === user1 ? count1 : count2,
-          };
 
-          userSocket
-            .to(`profile:${user1}`)
-            .to(`profile:${user2}`)
-            .emit("friendship-update", update);
-          userSocket.to(`profile:${user1}`).emit("friends/amount", count1);
-          userSocket.to(`profile:${user2}`).emit("friends/amount", count2);
+          // Get lists of friends for each user
+          const getFriends = async (userId) => {
+            const friends = await FriendShip.findAll({
+              where: {
+                [Op.or]: [{ user1: userId }, { user2: userId }],
+                status: "accepted",
+              },
+              include: [
+                { model: User, as: "primary" },
+                { model: User, as: "secondary" },
+              ],
+            });
+
+            return friends
+              .map((f) => (f.user1 === userId ? f.secondary : f.primary))
+              .filter((friend) => friend.id !== userId);
+          };
+          const [friends1, friends2] = await Promise.all([
+            getFriends(user1),
+            getFriends(user2),
+          ]);
+
+          // Broadcast friendship updates
+          const profileRoom1 = `profile:${user1}`;
+          const profileRoom2 = `profile:${user2}`;
+          io.to(profileRoom1)
+            .to(profileRoom2)
+            .emit("friendship-update", {
+              user1,
+              user2,
+              friendship,
+              status: friendship ? friendship.status : "none",
+              action,
+              friendsCount: profileId === user1 ? count1 : count2,
+            });
+
+          io.to(profileRoom1).emit("friends/amount", count1);
+          io.to(profileRoom2).emit("friends/amount", count2);
+          io.to(`user:${user1}`).emit("friendsList", friends1);
+          io.to(`user:${user2}`).emit("friendsList", friends2);
         } catch (err) {
           console.error("Friend request error:", err);
           socket.emit("friend-error", { action, error: "Operation failed" });
         }
       });
 
-      socket.on("disconnect", () => {
-        console.log(
-          `🔗 User disconnected from userProfile namespace: ${socket.id}`
-        );
-      });
-    });
-
-    // -------------------- Business Profile Namespace --------------------
-    businessSocket.on("connection", (socket) => {
-      console.log(
-        `🔗 User connected to businessProfile namespace: ${socket.id}`
-      );
-
+      // -------------------- Business Rooms --------------------
       socket.on("join-business-room", (businessId) => {
         if (!businessId) return;
         socket.join(`business:${businessId}`);
@@ -145,9 +220,10 @@ const initSocketServer = (server) => {
           }
 
           const followingCount = await Follow.count({ where: { businessId } });
-          businessSocket
-            .to(`business:${businessId}`)
-            .emit("followers/amount", followingCount);
+          io.to(`business:${businessId}`).emit(
+            "followers/amount",
+            followingCount
+          );
           socket.emit("follow-status", {
             success: true,
             isFollowing: action === "follow",
@@ -161,10 +237,15 @@ const initSocketServer = (server) => {
         }
       });
 
+      // -------------------- Disconnect --------------------
       socket.on("disconnect", () => {
-        console.log(
-          `🔗 User disconnected from businessProfile namespace: ${socket.id}`
-        );
+        if (socket.userId) {
+          const index = onlineUsers.findIndex((u) => u.id === socket.userId);
+          if (index !== -1) onlineUsers.splice(index, 1);
+          console.log(
+            `🔗 User ${socket.userId} disconnected from main namespace`
+          );
+        }
       });
     });
   } catch (error) {
