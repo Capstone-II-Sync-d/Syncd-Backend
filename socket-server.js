@@ -74,17 +74,16 @@ const initSocketServer = (server) => {
       /* action: The action to take with the friendship (create, accept, decline, remove) */
       /************************************************************************************/
       socket.on("friend-request", async({ receiverId, friendshipId, action }) => {
-        const senderId = socket.userId;
-        io.to(`user:${receiverId}`).emit("request-response", "Received!");
-        return console.log(`Socket User: ${senderId}
-Receiver: ${receiverId}
-Friendship Id: ${friendshipId}
-Action: ${action}`);
-
-        
+        console.log("Received Friend Request Event");
+        const senderId = socket.userId;        
         const senderIsUser1 = senderId < receiverId;
         try {
-          const friendship = await FriendShip.findByPk(friendshipId);
+          const friendship = await FriendShip.findByPk(friendshipId, {
+            include: [
+              { model: User, as: 'primary' },
+              { model: User, as: 'secondary' },
+            ],
+          });
           switch (action) {
             /* Sender has added Receiver as a friend */
             case 'create':
