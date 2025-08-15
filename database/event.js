@@ -45,7 +45,7 @@ const Event = db.define("event", {
           return;
 
         const business = await Business.findByPk(this.businessId);
-        if (business.ownerId !== item.ownerId)
+        if (business.ownerId !== item.userId)
           throw new Error("Business owner must match calendar item owner");
       } catch (error) {
         throw new Error("Failed to run custom validator:", error);
