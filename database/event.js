@@ -43,10 +43,11 @@ const Event = db.define(
               "Calendar Item description cannot be null or empty for a published event"
             );
 
-          if (this.published && !item.location)
-            throw new Error(
-              "Calendar Item location cannot be null or empty for a published event"
-          if (!this.businessId) return;
+        if (this.published && !item.location)
+          throw new Error(
+            "Calendar Item location cannot be null or empty for a published event"
+          );
+        if (!this.businessId) return;
         const business = await Business.findByPk(this.businessId);
         if (business.ownerId !== item.userId)
           throw new Error("Business owner must match calendar item owner");
@@ -55,6 +56,6 @@ const Event = db.define(
       }
     },
   }
-);
+});
 
 module.exports = Event;
