@@ -157,7 +157,7 @@ router.get("/me/friends", authenticateJWT, async (req, res) => {
 router.get("/user/:id/friends", authenticateJWT, async (req, res) => {
   try {
     // Get user ID from auth token
-    const userId = req.params.id;
+    const userId = Number(req.params.id);
 
     // Find all friends of the current user
     const friendsConnected = await FriendShip.findAll({
