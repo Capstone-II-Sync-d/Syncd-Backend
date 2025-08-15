@@ -103,9 +103,9 @@ const initSocketServer = (server) => {
               if (!friendship)
                 throw new Error("Cannot accept friend request, relation does not exist");
 
-              if ((senderIsUser1 && friendship.status === 'pending2') || 
-                  (!senderIsUser1 && friendship.status === 'pending1'))
-                throw new Error("Cannot accept friend request, you are not the recipient");
+              if ((senderIsUser1 && friendship.status === 'pending1') || 
+                  (!senderIsUser1 && friendship.status === 'pending2'))
+                throw new Error(`Cannot accept friend request, user ${senderId} is not the recipient`);
               
               await friendship.update({ status: 'accepted' });
               io.to(`user:${receiverId}`).emit("friend-request-accepted", friendship);
@@ -120,19 +120,20 @@ const initSocketServer = (server) => {
                 throw new Error("Cannot delete friendship, relation does not exist");
 
               if ((action === 'decline') &&
-                  (senderIsUser1 && friendship.status === 'pending2') || 
-                  (!senderIsUser1 && friendship.status === 'pending1'))
+                  (senderIsUser1 && friendship.status === 'pending1') || 
+                  (!senderIsUser1 && friendship.status === 'pending2'))
                 throw new Error("Cannot decline friend request, you are not the recipient");
 
               if ((action === 'cancel') &&
-                  (senderIsUser1 && friendship.status === 'pending1') ||
-                  (!senderIsUser1 && friendship.status === 'pending2'))
+                  (senderIsUser1 && friendship.status === 'pending2') ||
+                  (!senderIsUser1 && friendship.status === 'pending1'))
                 throw new Error("Cannot cancel friend request, you are not the sender");
               
               await friendship.destroy();
               io.to(`user:${receiverId}`).emit("friendship-deleted", friendship);
           }
         } catch (error) {
+          console.error(error);
           io.to(`user:${senderId}`).emit("friendship-error", { action, error });
         }
       });
