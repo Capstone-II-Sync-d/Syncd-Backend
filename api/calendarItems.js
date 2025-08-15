@@ -155,10 +155,16 @@ router.post("/user/item", authenticateJWT, async (req, res) => {
     const userId = req.user.id;
     // Get calendar item information from request body
     const calendarItemData = req.body;
+    console.log("Calender info", calendarItemData);
 
     // Create new calendar item with the user id attached
     const newCalendarItem = await CalendarItem.create({
-      ...calendarItemData,
+      title: calendarItemData.title,
+      description: calendarItemData.description,
+      location: calendarItemData.location,
+      start: calendarItemData.start,
+      end: calendarItemData.end,
+      public: calendarItemData.public,
       userId: userId,
     });
 
@@ -407,7 +413,7 @@ router.post("/business/:id", authenticateJWT, async (req, res) => {
     await Event.create({
       itemId: newItem.id,
       businessId: businessId,
-      published: false
+      published: false,
     });
 
     // Send success response with the newly created calendar item
