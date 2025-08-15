@@ -46,6 +46,7 @@ router.get("/me", authenticateJWT, async (req, res) => {
       
       if (notif.request_notification) {
         notifInfo.type = 'request';
+        notifInfo.friendshipId = notif.request_notification.friendship.id;
         notifInfo.status = notif.request_notification.friendship.status;
         const otherUser = notif.request_notification.friendship.primary.id === userId ?
           notif.request_notification.friendship.secondary : notif.request_notification.friendship.primary;
