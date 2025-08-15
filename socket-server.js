@@ -21,6 +21,31 @@ const getMessagesBetweenUsers = async (userId1, userId2) => {
   });
 };
 
+
+const createFriendRequestNotification = async (sender, receiver, friendship) => {
+  const notification = await Notification.create({ userId: receiver });
+  const fr_notif = await RequestNotification.create({
+    notificationId: notification.id,
+    friendshipId: friendship.id,
+  });
+  const senderInfo = friendship.primary.id === sender ? friendship.primary : friendship.secondary;
+  const notifInfo = {
+    id: notification.id,
+    time: notification.createdAt,
+    read: notification.read,
+    userId: notification.userId,
+    type: 'request',
+    friendshipId: friendship.id,
+    status: friendship.status,
+    otherUser: {
+      id: senderInfo.id,
+      firstName: senderInfo.firstName,
+      userName: senderInfo.username,
+    }
+  };
+  return notifInfo;
+};
+
 // -------------------- Main Socket Server Initialization --------------------
 const initSocketServer = (server) => {
   try {
@@ -77,6 +102,7 @@ const initSocketServer = (server) => {
         console.log("Received Friend Request Event");
         const senderId = socket.userId;        
         const senderIsUser1 = senderId < receiverId;
+        let notification = null;
         try {
           const friendship = await FriendShip.findByPk(friendshipId, {
             include: [
@@ -96,7 +122,8 @@ const initSocketServer = (server) => {
                 status: senderIsUser1 ? "pending2" : "pending1",
               }
               const newFriendship = await FriendShip.create(info);
-              io.to(`user:${receiverId}`).emit("friend-request-received", newFriendship);
+              notification = await createFriendRequestNotification(senderId, receiverId, newFriendship);
+              io.to(`user:${receiverId}`).emit("friend-request-received", notification);
               return;
             /* Sender has accepted Receiver's friend request */
             case 'accept':
@@ -108,7 +135,8 @@ const initSocketServer = (server) => {
                 throw new Error(`Cannot accept friend request, user ${senderId} is not the recipient`);
               
               await friendship.update({ status: 'accepted' });
-              io.to(`user:${receiverId}`).emit("friend-request-accepted", friendship);
+              notification = await createFriendRequestNotification(senderId, receiverId, friendship);
+              io.to(`user:${receiverId}`).emit("friend-request-accepted", notification);
               return;
             /* Sender has declined Receiver's friend request (fall through) */
             case 'decline':
