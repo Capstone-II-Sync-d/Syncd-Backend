@@ -130,6 +130,9 @@ const initSocketServer = (server) => {
               if (!friendship)
                 throw new Error("Cannot accept friend request, relation does not exist");
 
+              if (friendship.status === 'accepted')
+                throw new Error("Cannot accept friend request, relation status is already 'accepted'");
+
               if ((senderIsUser1 && friendship.status === 'pending1') || 
                   (!senderIsUser1 && friendship.status === 'pending2'))
                 throw new Error(`Cannot accept friend request, user ${senderId} is not the recipient`);
