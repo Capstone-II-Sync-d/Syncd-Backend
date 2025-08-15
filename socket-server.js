@@ -37,14 +37,14 @@ const initSocketServer = (server) => {
       console.log(`🔗 User connected to main namespace: ${socket.id}`);
 
       // Track connected users
-      socket.on("userConnected", (user) => {
-        if (!user?.id) return;
-        socket.userId = user.id; // Attach userId to socket
-        socket.join(`user:${user.id}`); // Join personal room for private events
-        if (!onlineUsers.some((u) => u.id === user.id)) {
-          onlineUsers.push(user); // Add user to online users list
-        }
-        console.log(`👤 User ${user.id} connected to main namespace`);
+      socket.on("connected", (id) => {
+        if (!id) return;
+
+        socket.userId = id; // Attach userId to socket
+        socket.join(`user:${id}`); // Join personal room for private events
+        if (!onlineUsers.some((u) => u.id === id))
+          onlineUsers.push(id); // Add user to online users list
+        console.log(`👤 User ${id} connected to main namespace`);
       });
 
       // -------------------- Message Rooms --------------------
@@ -69,12 +69,19 @@ const initSocketServer = (server) => {
       /************************************************************************************/
       /* Response to a friend request event                                               */
       /************************************************************************************/
-      /* senderId: The ID of the user sending this event                                  */
       /* receiverId: The ID of the user meant to receive this event                       */
       /* friendshipId: The ID of the frienship to be modified, if any                     */
       /* action: The action to take with the friendship (create, accept, decline, remove) */
       /************************************************************************************/
-      socket.on("friend-request", async({ senderId, receiverId, friendshipId, action }) => {
+      socket.on("friend-request", async({ receiverId, friendshipId, action }) => {
+        const senderId = socket.userId;
+        io.to(`user:${receiverId}`).emit("request-response", "Received!");
+        return console.log(`Socket User: ${senderId}
+Receiver: ${receiverId}
+Friendship Id: ${friendshipId}
+Action: ${action}`);
+
+        
         const senderIsUser1 = senderId < receiverId;
         try {
           const friendship = await FriendShip.findByPk(friendshipId);
