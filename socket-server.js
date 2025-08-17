@@ -1,5 +1,5 @@
 const { Server } = require("socket.io");
-const { User, FriendShip, Follow, Message } = require("./database");
+const { User, FriendShip, Follow, Message, Notification, RequestNotification } = require("./database");
 const { Op } = require("sequelize");
 
 let io; // Socket.io server instance
