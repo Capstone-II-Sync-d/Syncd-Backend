@@ -1,8 +1,11 @@
 const { Server } = require("socket.io");
 const { User, FriendShip, Follow, Message, Notification, RequestNotification } = require("./database");
 const { Op } = require("sequelize");
+const jwt = require("jsonwebtoken");
+const cookie = require("cookie");
 
 let io; // Socket.io server instance
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000"; // CORS origin
 const onlineUsers = []; // Tracks currently connected users
 
@@ -76,20 +79,31 @@ const initSocketServer = (server) => {
       },
     });
 
+    // --------------- Authentication Middleware --------------
+    io.use((socket, next) => {
+      const cookies = cookie.parse(socket.request.headers.cookie);
+      const token = cookies.token;
+      
+      if (!token)
+        next(new Error("Access token required!"));
+
+      jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err)
+          next(new Error("Invalid or expired token"));
+
+        socket.user = user;
+        next();
+      });
+    });
+
     // -------------------- Main Namespace --------------------
     io.on("connection", (socket) => {
       console.log(`🔗 User connected to main namespace: ${socket.id}`);
-
-      // Track connected users
-      socket.on("connected", (id) => {
-        if (!id) return;
-
-        socket.userId = id; // Attach userId to socket
-        socket.join(`user:${id}`); // Join personal room for private events
-        if (!onlineUsers.some((u) => u.id === id))
-          onlineUsers.push(id); // Add user to online users list
-        console.log(`👤 User ${id} connected to main namespace`);
-      });
+      const userId = socket.user.id;
+      socket.join(`user:${userId}`); // Join personal room for private events
+      if (!onlineUsers.some((u) => u.id === userId))
+        onlineUsers.push(userId); // Add user to online users list
+      console.log(`👤 User ${userId} connected to main namespace`);
 
       // -------------------- Message Rooms --------------------
       socket.on("join-message-room", async (roomName, user, userClicked) => {
@@ -119,7 +133,7 @@ const initSocketServer = (server) => {
       /************************************************************************************/
       socket.on("friend-request", async({ receiverId, friendshipId, action }) => {
         console.log("Received Friend Request Event");
-        const senderId = socket.userId;        
+        const senderId = userId;
         const senderIsUser1 = senderId < receiverId;
         let notification = null;
         let status = "none";
