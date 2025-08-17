@@ -103,6 +103,8 @@ const initSocketServer = (server) => {
         const senderId = socket.userId;        
         const senderIsUser1 = senderId < receiverId;
         let notification = null;
+        let status = "none";
+        let newStatus = "none";
         try {
           const friendship = await FriendShip.findByPk(friendshipId, {
             include: [
@@ -110,6 +112,7 @@ const initSocketServer = (server) => {
               { model: User, as: 'secondary' },
             ],
           });
+          status = friendship ? friendship.status : "none";
           switch (action) {
             /* Sender has added Receiver as a friend */
             case 'create':
@@ -124,7 +127,8 @@ const initSocketServer = (server) => {
               const newFriendship = await FriendShip.create(info);
               notification = await createFriendRequestNotification(senderId, receiverId, newFriendship);
               io.to(`user:${receiverId}`).emit("friend-request-received", notification);
-              return;
+              newStatus = info.status;
+              break;
             /* Sender has accepted Receiver's friend request */
             case 'accept':
               if (!friendship)
@@ -165,8 +169,20 @@ const initSocketServer = (server) => {
           }
         } catch (error) {
           console.error(error);
-          io.to(`user:${senderId}`).emit("friendship-error", { action, error });
+          io.to(`user:${senderId}`).emit("friendship-error", { 
+            status,
+            friendshipId,
+            action,
+            error,
+          });
+          return;
         }
+
+        io.to(`user:${senderId}`).emit("friend-request-success", {
+          newStatus,
+          friendshipId,
+          action,
+        });
       });
 
       socket.on("leave-message-room", (roomName) => {
