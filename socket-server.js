@@ -46,6 +46,25 @@ const createFriendRequestNotification = async (sender, receiver, friendship) => 
   return notifInfo;
 };
 
+
+const deleteFriendship = async (friendship, action, senderIsUser1, receiverId) => {
+  if (!friendship)
+    throw new Error("Cannot delete friendship, relation does not exist");
+
+  if ((action === 'decline') &&
+      (senderIsUser1 && friendship.status === 'pending1') || 
+      (!senderIsUser1 && friendship.status === 'pending2'))
+    throw new Error("Cannot decline friend request, you are not the recipient");
+
+  if ((action === 'cancel') &&
+      (senderIsUser1 && friendship.status === 'pending2') ||
+      (!senderIsUser1 && friendship.status === 'pending1'))
+    throw new Error("Cannot cancel friend request, you are not the sender");
+  
+  await friendship.destroy();
+  io.to(`user:${receiverId}`).emit("friendship-deleted", friendship);
+}
+
 // -------------------- Main Socket Server Initialization --------------------
 const initSocketServer = (server) => {
   try {
@@ -144,28 +163,23 @@ const initSocketServer = (server) => {
               await friendship.update({ status: 'accepted' });
               notification = await createFriendRequestNotification(senderId, receiverId, friendship);
               io.to(`user:${receiverId}`).emit("friend-request-accepted", notification);
-              return;
-            /* Sender has declined Receiver's friend request (fall through) */
+              newStatus = 'accepted';
+              break;
+            /* Sender has declined Receiver's friend request */
             case 'decline':
-            /* Sender has removed the Receiver as a friend (fall through) */
+              await deleteFriendship(friendship, action, receiverId, senderIsUser1);
+              newStatus = 'declined';
+              break;
+            /* Sender has removed the Receiver as a friend */
             case 'remove':
+              await deleteFriendship(friendship, action, receiverId, senderIsUser1);
+              newStatus = 'removed';
+              break;
             /* Sender has canceled their friend request to Receiver */
             case 'cancel':
-              if (!friendship)
-                throw new Error("Cannot delete friendship, relation does not exist");
-
-              if ((action === 'decline') &&
-                  (senderIsUser1 && friendship.status === 'pending1') || 
-                  (!senderIsUser1 && friendship.status === 'pending2'))
-                throw new Error("Cannot decline friend request, you are not the recipient");
-
-              if ((action === 'cancel') &&
-                  (senderIsUser1 && friendship.status === 'pending2') ||
-                  (!senderIsUser1 && friendship.status === 'pending1'))
-                throw new Error("Cannot cancel friend request, you are not the sender");
-              
-              await friendship.destroy();
-              io.to(`user:${receiverId}`).emit("friendship-deleted", friendship);
+              await deleteFriendship(friendship, action, receiverId, senderIsUser1);
+              newStatus = 'cancelled';
+              break;
           }
         } catch (error) {
           console.error(error);
