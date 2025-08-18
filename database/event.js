@@ -46,13 +46,15 @@ const Event = db.define(
           if (this.published && !item.location)
             throw new Error(
               "Calendar Item location cannot be null or empty for a published event"
+            );
           if (!this.businessId) return;
-        const business = await Business.findByPk(this.businessId);
-        if (business.ownerId !== item.userId)
-          throw new Error("Business owner must match calendar item owner");
-      } catch (error) {
-        throw new Error("Failed to run custom validator:", error);
-      }
+          const business = await Business.findByPk(this.businessId);
+          if (business.ownerId !== item.userId)
+            throw new Error("Business owner must match calendar item owner");
+        } catch (error) {
+          throw new Error("Failed to run custom validator:", error);
+        }
+      },
     },
   }
 );
