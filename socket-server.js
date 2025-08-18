@@ -81,11 +81,17 @@ const initSocketServer = (server) => {
 
     // --------------- Authentication Middleware --------------
     io.use((socket, next) => {
-      const cookies = cookie.parse(socket.request.headers.cookie);
-      const token = cookies.token;
-      
-      if (!token)
+      const cookies = socket.request.headers.cookie;
+      if (!cookies) {
         next(new Error("Access token required!"));
+        return;
+      }
+      
+      const token = cookie.parse(cookies).token;      
+      if (!token) {
+        next(new Error("Access token required!"));
+        return;
+      }
 
       jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err)
