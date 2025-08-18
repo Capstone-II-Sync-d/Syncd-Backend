@@ -42,7 +42,6 @@ const Event = db.define(
             throw new Error(
               "Calendar Item description cannot be null or empty for a published event"
             );
-
         if (this.published && !item.location)
           throw new Error(
             "Calendar Item location cannot be null or empty for a published event"
