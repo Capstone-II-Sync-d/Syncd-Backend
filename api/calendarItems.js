@@ -76,7 +76,7 @@ router.get("/user/:id", authenticateJWT, async (req, res) => {
     // Find all calendar items created by this user
     const userCalendarItems = await CalendarItem.findAll({
       // Filter so we only get calendar items created by this specific user
-      where: { userId: id, privacy: "public" },
+      where: { userId: id, public: true },
       // Sort by start time (earliest first)
       order: [["start", "ASC"]],
     });
