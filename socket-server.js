@@ -1,5 +1,12 @@
 const { Server } = require("socket.io");
-const { User, FriendShip, Follow, Message } = require("./database");
+const {
+  User,
+  FriendShip,
+  Follow,
+  Message,
+  Reminder,
+  CalendarItem,
+} = require("./database");
 const { Op } = require("sequelize");
 
 let io; // Socket.io server instance
@@ -20,6 +27,26 @@ const getMessagesBetweenUsers = async (userId1, userId2) => {
     order: [["createdAt", "ASC"]],
   });
 };
+
+// const reminderCheck = async () => {
+//   const now = Date.now();
+//   const formattedDate = now.toLocaleString(`en-US`, {
+//     year: "numeric",
+//     month: "numeric",
+//     day: "numeric",
+//     minute: "numeric",
+//   });
+//   const reminders = await Reminder.findAll({
+//     where: reminderTime === formattedDate,
+//   });
+
+//   reminders.forEach(async (reminder) => {
+//     const calendarItem = await CalendarItem.findByPk(reminder.calendarId);
+//     socket.to(`user:${reminder.ownerId}`).emit();
+//   });
+// };
+
+// setInterval(reminderCheck, 30000);
 
 // -------------------- Main Socket Server Initialization --------------------
 const initSocketServer = (server) => {

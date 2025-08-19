@@ -22,6 +22,18 @@ const Reminder = db.define("reminder", {
     type: DataTypes.ENUM(["minutes", "hours", "days", "weeks"]),
     allowNull: false,
   },
+  reminderTime: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    // validate: {
+    //   isDateCalid(dateStri) {
+    //     STRING(dateStri);
+    //     if (isNaN(new Date(dateStri)) === false) {
+    //       throw new Error("Time Value is not a Date");
+    //     }
+    //   },
+    // },
+  },
   calendarItemId: {
     type: DataTypes.INTEGER,
     allowNull: false,
