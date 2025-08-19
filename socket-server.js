@@ -148,7 +148,7 @@ const initSocketServer = (server) => {
       /* action: The action to take with the friendship (create, accept, decline, remove) */
       /************************************************************************************/
       socket.on("friend-request", async({ receiverId, friendshipId, action }) => {
-        console.log("Received Friend Request Event");
+        console.log(`Received Friend Request Event For Friendship #${friendshipId}`);
         const senderId = userId;
         const senderIsUser1 = senderId < receiverId;
         let notification = null;
@@ -193,6 +193,9 @@ const initSocketServer = (server) => {
               await friendship.update({ status: 'accepted' });
               notification = await createFriendRequestNotification(senderId, receiverId, friendship);
               io.to(`user:${receiverId}`).emit("friend-request-accepted", notification);
+              io.to(`userProfile:${senderId}`)
+                .to(`userProfile:${receiverId}`)
+                .emit("friend-gained");
               newStatus = 'accepted';
               break;
             /* Sender has declined Receiver's friend request */
@@ -203,6 +206,9 @@ const initSocketServer = (server) => {
             /* Sender has removed the Receiver as a friend */
             case 'remove':
               await deleteFriendship(friendship, action, receiverId, senderIsUser1);
+              io.to(`userProfile:${senderId}`)
+                .to(`userProfile:${receiverId}`)
+                .emit("friend-lost");
               newStatus = 'removed';
               break;
             /* Sender has canceled their friend request to Receiver */
