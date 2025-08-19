@@ -256,7 +256,6 @@ router.post("/user/add-event", authenticateJWT, async (req, res) => {
       console.log(findAttendee);
       return res.status(201).json(attendee);
     }
-
     return res.status(400).json({ error: "Invalid calendar type" });
   } catch (error) {
     console.error("Error adding to calendar:", error);
@@ -350,6 +349,54 @@ const checkBusinessOwnership = async (businessId, userId) => {
   }
   return { authorized: true, business };
 };
+
+// Copy a calendarItem from a business calendar
+router.post("/business/attending", authenticateJWT, async (req, res) => {
+  const { sourceEventId } = req.body;
+  const userId = req.user.id;
+
+  // Validate sourceEventId
+  //Was getting error that it wasn't a number
+  if (!sourceEventId || isNaN(Number(sourceEventId))) {
+    return res.status(400).json({ error: "Invalid sourceEventId" });
+  }
+
+  try {
+    // Find the source calendar item
+    const sourceItem = await CalendarItem.findByPk(Number(sourceEventId), {
+      include: [{ model: Event }],
+    });
+
+    if (!sourceItem) {
+      return res.status(404).json({ error: "Source calendar item not found" });
+    }
+
+    // Ensure it has an associated Event
+    if (!sourceItem.event) {
+      return res.status(400).json({ error: "Source item is not an event" });
+    }
+
+    // Check if the user is already attending
+    const existingAttendee = await Attendee.findOne({
+      where: { userId, eventId: sourceItem.event.id },
+    });
+
+    if (existingAttendee) {
+      return res.status(400).json({ error: "Already attending this event" });
+    }
+
+    // Create attendee record
+    const attendee = await Attendee.create({
+      userId,
+      eventId: sourceItem.event.id,
+    });
+
+    return res.status(201).json(attendee);
+  } catch (error) {
+    console.error("Error adding to business calendar:", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
 
 //|-----------------------------------------------------------------|
 //Get all calendar items for a specific business [Protected]
