@@ -64,8 +64,18 @@ const deleteFriendship = async (friendship, action, senderIsUser1, receiverId) =
       (!senderIsUser1 && friendship.status === 'pending1'))
     throw new Error("Cannot cancel friend request, you are not the sender");
   
-  await friendship.destroy();
-  io.to(`user:${receiverId}`).emit("friendship-deleted", friendship);
+  try {
+    const senderId = senderIsUser1 ? friendship.user1.id : friendship.user2.id;
+    await friendship.destroy();
+    io.to(`user:${receiverId}`).emit("friendship-deleted", {
+      user1: senderId,
+      user2: receiverId,
+      status: "none",
+    });
+
+  } catch (error) {
+    throw new Error(`Failed to ${action} friendship: ${error}`);
+  }
 }
 
 // -------------------- Main Socket Server Initialization --------------------
