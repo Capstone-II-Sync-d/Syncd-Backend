@@ -50,7 +50,7 @@ const createFriendRequestNotification = async (sender, receiver, friendship) => 
 };
 
 
-const deleteFriendship = async (friendship, action, senderIsUser1, receiverId) => {
+const deleteFriendship = async ({ friendship, action, senderIsUser1, receiverId }) => {
   if (!friendship)
     throw new Error("Cannot delete friendship, relation does not exist");
 
@@ -65,9 +65,10 @@ const deleteFriendship = async (friendship, action, senderIsUser1, receiverId) =
     throw new Error("Cannot cancel friend request, you are not the sender");
   
   try {
-    const senderId = senderIsUser1 ? friendship.user1.id : friendship.user2.id;
+    const senderId = senderIsUser1 ? friendship.user1 : friendship.user2;
     await friendship.destroy();
-    io.to(`user:${receiverId}`).emit("friendship-deleted", {
+    io.to(`user:${receiverId}`)
+    .emit("friendship-deleted", {
       user1: senderId,
       user2: receiverId,
       status: "none",
@@ -202,12 +203,12 @@ const initSocketServer = (server) => {
               break;
             /* Sender has declined Receiver's friend request */
             case 'decline':
-              await deleteFriendship(friendship, action, receiverId, senderIsUser1);
+              await deleteFriendship({ friendship, action, receiverId, senderIsUser1 });
               newStatus = 'declined';
               break;
             /* Sender has removed the Receiver as a friend */
             case 'remove':
-              await deleteFriendship(friendship, action, receiverId, senderIsUser1);
+              await deleteFriendship({ friendship, action, receiverId, senderIsUser1 });
               io.to(`userProfile:${senderId}`)
                 .to(`userProfile:${receiverId}`)
                 .emit("friend-lost");
@@ -215,7 +216,7 @@ const initSocketServer = (server) => {
               break;
             /* Sender has canceled their friend request to Receiver */
             case 'cancel':
-              await deleteFriendship(friendship, action, receiverId, senderIsUser1);
+              await deleteFriendship({ friendship, action, receiverId, senderIsUser1 });
               newStatus = 'cancelled';
               break;
           }
