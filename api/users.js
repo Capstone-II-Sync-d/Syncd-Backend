@@ -139,6 +139,7 @@ router.get("/me/friends", authenticateJWT, async (req, res) => {
 
     // maps through friendships to find the friend of the current user
     const friends = friendsConnected.map((friendship) => ({
+      id: friendship.id,
       status: friendship.status,
       user:
         friendship.user1 === userId ? friendship.secondary : friendship.primary,
