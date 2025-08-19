@@ -43,7 +43,7 @@ const createFriendRequestNotification = async (sender, receiver, friendship) => 
     otherUser: {
       id: senderInfo.id,
       firstName: senderInfo.firstName,
-      userName: senderInfo.username,
+      username: senderInfo.username,
     }
   };
   return notifInfo;
