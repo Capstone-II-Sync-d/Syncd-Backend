@@ -66,12 +66,23 @@ const deleteFriendship = async ({ friendship, action, senderIsUser1, receiverId 
   
   try {
     const senderId = senderIsUser1 ? friendship.user1 : friendship.user2;
+    const notifs = await Notification.findAll({
+      include: [{ 
+        model: RequestNotification,
+        where: {
+          friendshipId: friendship.id,
+        },
+      }]
+    });
+    notifs.map(async (notif) => (await notif.destroy()));
     await friendship.destroy();
     io.to(`user:${receiverId}`)
-    .emit("friendship-deleted", {
+      .to(`user:${senderId}`)
+      .emit("friendship-deleted", {
       user1: senderId,
       user2: receiverId,
       status: "none",
+      friendshipId: friendship.id,
     });
 
   } catch (error) {
@@ -180,6 +191,7 @@ const initSocketServer = (server) => {
               notification = await createFriendRequestNotification(senderId, receiverId, newFriendship);
               io.to(`user:${receiverId}`).emit("friend-request-received", notification);
               newStatus = info.status;
+              friendshipId = newFriendship.id;
               break;
             /* Sender has accepted Receiver's friend request */
             case 'accept':
