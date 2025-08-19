@@ -19,35 +19,48 @@ const { authenticateJWT } = require("../auth");
 //|=====================================================================================|
 
 //|-----------------------------------------------------------------|
-// Get all calendar items for current user [Protected]
 router.get("/me", authenticateJWT, async (req, res) => {
+  const userId = req.user.id;
+
   try {
-    // Get user id from paramaters
-    const id = req.user.id;
-    // Find all calendar items created by this user
-    const userCalendarItems = await CalendarItem.findAll({
-      // Filter so we only get calendar items created by this specific user
-      where: { userId: id },
+    // Fetch owned items
+    const ownedItems = await CalendarItem.findAll({
+      where: { userId },
+      include: [{ model: Event, required: false }],
+    });
+
+    // Fetch attended items
+    const attendedItems = await CalendarItem.findAll({
       include: [
         {
           model: Event,
-          required: false, // left join - includes items even if no event exists
+          required: true,
+          include: [
+            {
+              model: Attendee,
+              where: { userId },
+              required: true,
+            },
+          ],
         },
       ],
-      // Sort by start time (earliest first)
-      order: [["start", "ASC"]],
     });
 
-    // Send success response if everything works and send back the user's calendar items
-    res.status(200).json(userCalendarItems);
+    // Combine items and remove duplicates by id
+    const combinedItems = [...ownedItems, ...attendedItems];
+    const uniqueItems = combinedItems.filter(
+      (item, index, self) => index === self.findIndex((t) => t.id === item.id)
+    );
+
+    // Sort by start date
+    uniqueItems.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+    return res.status(200).json(uniqueItems);
   } catch (error) {
-    console.error("Error fetching user's calendar items:", error);
-    res
-      .status(500)
-      .json({ error: `Failed to fetch calendar items for user ${id}` });
+    console.error("Error fetching calendar items:", error);
+    return res.status(500).json({ error: "Server error" });
   }
 });
-
 //|-----------------------------------------------------------------|
 // Get all public calendar items for a specific user (only friends can see) [Protected]
 router.get("/user/:id", authenticateJWT, async (req, res) => {
@@ -76,7 +89,7 @@ router.get("/user/:id", authenticateJWT, async (req, res) => {
     // Find all calendar items created by this user
     const userCalendarItems = await CalendarItem.findAll({
       // Filter so we only get calendar items created by this specific user
-      where: { userId: id, privacy: "public" },
+      where: { userId: id, public: true },
       // Sort by start time (earliest first)
       order: [["start", "ASC"]],
     });
@@ -170,6 +183,80 @@ router.post("/user/item", authenticateJWT, async (req, res) => {
   }
 });
 
+// Copy a calendarItem from someones calendar
+router.post("/user/add-event", authenticateJWT, async (req, res) => {
+  const {
+    sourceEventId,
+    title,
+    description,
+    location,
+    start,
+    end,
+    calendarId,
+    visibility,
+  } = req.body;
+  const userId = req.user.id;
+
+  try {
+    // Find the source item with its associated Event
+    const sourceItem = await CalendarItem.findByPk(sourceEventId, {
+      include: [{ model: Event }],
+    });
+
+    // Verify the item is public or a published event
+    if (
+      !sourceItem.public &&
+      (!sourceItem.event || !sourceItem.event.published)
+    ) {
+      return res.status(403).json({ error: "Item is private" });
+    }
+
+    if (calendarId === "personal") {
+      // For personal items: Create a new CalendarItem
+      console.log("going through personal");
+      const newItem = await CalendarItem.create({
+        title,
+        description,
+        location: location || null,
+        start: new Date(start),
+        end: new Date(end),
+        public: visibility === "public",
+        userId: userId,
+      });
+      console.log(newItem);
+      return res.status(201).json(newItem);
+    } else if (calendarId === "events") {
+      // For events: Add user as attendee
+      if (!sourceItem.event) {
+        return res.status(400).json({ error: "Not an event" });
+      }
+
+      // Check for existing attendee
+      const existingAttendee = await Attendee.findOne({
+        where: { userId, eventId: sourceItem.event.id },
+      });
+      if (existingAttendee) {
+        return res.status(400).json({ error: "Already attending" });
+      }
+      console.log("going through making an attendee");
+      // Create attendee record
+      const attendee = await Attendee.create({
+        userId,
+        eventId: sourceItem.event.id,
+      });
+      const findAttendee = await Attendee.findOne({
+        where: { userId, eventId: sourceItem.event.id },
+      });
+      console.log(findAttendee);
+      return res.status(201).json(attendee);
+    }
+    return res.status(400).json({ error: "Invalid calendar type" });
+  } catch (error) {
+    console.error("Error adding to calendar:", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 //|-----------------------------------------------------------------|
 // Edit a user calendar item by id
 router.patch("/user/item/:itemId", authenticateJWT, async (req, res) => {
@@ -256,6 +343,54 @@ const checkBusinessOwnership = async (businessId, userId) => {
   }
   return { authorized: true, business };
 };
+
+// Copy a calendarItem from a business calendar
+router.post("/business/attending", authenticateJWT, async (req, res) => {
+  const { sourceEventId } = req.body;
+  const userId = req.user.id;
+
+  // Validate sourceEventId
+  //Was getting error that it wasn't a number
+  if (!sourceEventId || isNaN(Number(sourceEventId))) {
+    return res.status(400).json({ error: "Invalid sourceEventId" });
+  }
+
+  try {
+    // Find the source calendar item
+    const sourceItem = await CalendarItem.findByPk(Number(sourceEventId), {
+      include: [{ model: Event }],
+    });
+
+    if (!sourceItem) {
+      return res.status(404).json({ error: "Source calendar item not found" });
+    }
+
+    // Ensure it has an associated Event
+    if (!sourceItem.event) {
+      return res.status(400).json({ error: "Source item is not an event" });
+    }
+
+    // Check if the user is already attending
+    const existingAttendee = await Attendee.findOne({
+      where: { userId, eventId: sourceItem.event.id },
+    });
+
+    if (existingAttendee) {
+      return res.status(400).json({ error: "Already attending this event" });
+    }
+
+    // Create attendee record
+    const attendee = await Attendee.create({
+      userId,
+      eventId: sourceItem.event.id,
+    });
+
+    return res.status(201).json(attendee);
+  } catch (error) {
+    console.error("Error adding to business calendar:", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
 
 //|-----------------------------------------------------------------|
 //Get all calendar items for a specific business [Protected]
@@ -766,5 +901,27 @@ router.delete("/events/:eventId", authenticateJWT, async (req, res) => {
 });
 
 //|-----------------------------------------------------------------|
+
+//Attendee Delete
+router.delete("/:eventId/:userId", async (req, res) => {
+  const { eventId, userId } = req.params;
+
+  console.log("Ids", eventId, userId);
+
+  try {
+    const deleted = await Attendee.destroy({
+      where: { eventId: eventId, userId: userId },
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ error: "Attendee not found" });
+    }
+
+    res.json({ message: "Attendee removed successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete attendee" });
+  }
+});
 
 module.exports = router;

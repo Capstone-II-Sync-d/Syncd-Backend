@@ -1,5 +1,12 @@
 const { Server } = require("socket.io");
-const { User, FriendShip, Follow, Message, Notification, RequestNotification } = require("./database");
+const {
+  User,
+  FriendShip,
+  Follow,
+  Message,
+  Reminder,
+  CalendarItem,
+} = require("./database");
 const { Op } = require("sequelize");
 const jwt = require("jsonwebtoken");
 const cookie = require("cookie");
@@ -23,7 +30,6 @@ const getMessagesBetweenUsers = async (userId1, userId2) => {
     order: [["createdAt", "ASC"]],
   });
 };
-
 
 const createFriendRequestNotification = async (sender, receiver, friendship) => {
   const notification = await Notification.create({ userId: receiver });
@@ -89,6 +95,26 @@ const deleteFriendship = async ({ friendship, action, senderIsUser1, receiverId 
     throw new Error(`Failed to ${action} friendship: ${error}`);
   }
 }
+
+// const reminderCheck = async () => {
+//   const now = Date.now();
+//   const formattedDate = now.toLocaleString(`en-US`, {
+//     year: "numeric",
+//     month: "numeric",
+//     day: "numeric",
+//     minute: "numeric",
+//   });
+//   const reminders = await Reminder.findAll({
+//     where: reminderTime === formattedDate,
+//   });
+
+//   reminders.forEach(async (reminder) => {
+//     const calendarItem = await CalendarItem.findByPk(reminder.calendarId);
+//     socket.to(`user:${reminder.ownerId}`).emit();
+//   });
+// };
+
+// setInterval(reminderCheck, 30000);
 
 // -------------------- Main Socket Server Initialization --------------------
 const initSocketServer = (server) => {
