@@ -4,6 +4,7 @@ const {
   FriendShip,
   Follow,
   Message,
+  Notification,
   Reminder,
   CalendarItem,
 } = require("./database");
