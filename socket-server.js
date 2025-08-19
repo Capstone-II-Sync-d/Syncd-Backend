@@ -258,13 +258,13 @@ const initSocketServer = (server) => {
       // -------------------- Profile Rooms --------------------
       socket.on("join-profile-room", (profileId) => {
         if (!profileId) return;
-        socket.join(`profile:${profileId}`); // Join profile-specific room
+        socket.join(`userProfile:${profileId}`); // Join profile-specific room
         console.log(`🚪 Joined profile room ${profileId}`);
       });
 
       socket.on("leave-profile-room", (profileId) => {
         if (!profileId) return;
-        const roomName = `profile:${profileId}`;
+        const roomName = `userProfile:${profileId}`;
         socket.leave(roomName);
         console.log(`🚪 User ${socket.userId} left profile room ${roomName}`);
       });
