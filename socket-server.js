@@ -5,6 +5,7 @@ const {
   Follow,
   Message,
   Notification,
+  RequestNotification,
   Reminder,
   CalendarItem,
 } = require("./database");
