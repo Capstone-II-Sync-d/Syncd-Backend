@@ -55,13 +55,13 @@ const deleteFriendship = async ({ friendship, action, senderIsUser1, receiverId 
     throw new Error("Cannot delete friendship, relation does not exist");
 
   if ((action === 'decline') &&
-      (senderIsUser1 && friendship.status === 'pending1') || 
-      (!senderIsUser1 && friendship.status === 'pending2'))
+      ((senderIsUser1 && friendship.status === 'pending2') || 
+      (!senderIsUser1 && friendship.status === 'pending1')))
     throw new Error("Cannot decline friend request, you are not the recipient");
 
   if ((action === 'cancel') &&
-      (senderIsUser1 && friendship.status === 'pending2') ||
-      (!senderIsUser1 && friendship.status === 'pending1'))
+      ((senderIsUser1 && friendship.status === 'pending1') ||
+      (!senderIsUser1 && friendship.status === 'pending2')))
     throw new Error("Cannot cancel friend request, you are not the sender");
   
   try {
@@ -189,8 +189,8 @@ const initSocketServer = (server) => {
               if (friendship.status === 'accepted')
                 throw new Error("Cannot accept friend request, relation status is already 'accepted'");
 
-              if ((senderIsUser1 && friendship.status === 'pending1') || 
-                  (!senderIsUser1 && friendship.status === 'pending2'))
+              if ((senderIsUser1 && friendship.status === 'pending2') || 
+                  (!senderIsUser1 && friendship.status === 'pending1'))
                 throw new Error(`Cannot accept friend request, user ${senderId} is not the recipient`);
               
               await friendship.update({ status: 'accepted' });
