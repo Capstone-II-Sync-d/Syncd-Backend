@@ -174,6 +174,8 @@ const initSocketServer = (server) => {
                 status: senderIsUser1 ? "pending2" : "pending1",
               }
               const newFriendship = await FriendShip.create(info);
+              newFriendship.primary = await User.findByPk(info.user1);
+              newFriendship.secondary = await User.findByPk(info.user2);
               notification = await createFriendRequestNotification(senderId, receiverId, newFriendship);
               io.to(`user:${receiverId}`).emit("friend-request-received", notification);
               newStatus = info.status;
@@ -231,6 +233,7 @@ const initSocketServer = (server) => {
         io.to(`user:${senderId}`).emit("friend-request-success", {
           newStatus,
           friendshipId,
+          receiverId,
           action,
         });
       });
