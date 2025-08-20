@@ -12,6 +12,11 @@ const Attendee = db.define("attendee", {
     allowNull: false,
     primaryKey: true,
   },
+  confirmed: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
 });
 
 module.exports = Attendee;
