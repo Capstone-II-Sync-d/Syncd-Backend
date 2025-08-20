@@ -117,6 +117,35 @@ const deleteFriendship = async ({
   }
 };
 
+const areUsersFriends = async (user1, user2) => {
+  const senderFriendships = await FriendShip.findAll({
+    where: {
+      [Op.or]: [
+        { user1: user1 },
+        { user2: user1 },
+      ],
+    },
+  });
+
+  const friendship = senderFriendships.find((friendship) => (
+    friendship.user1 === user2 ||
+    friendship.user2 === user2
+  ));
+
+  return friendship?.status === "accepted";
+};
+
+const isUserFollower = async (userId, businessId) => {
+  const follows = await Follow.findAll({
+    where: { businessId },
+  })
+  const follower = follows.find((follow) => (
+    follow.userId === userId
+  ));
+
+  return !!follower;
+};
+
 // const reminderCheck = async () => {
 //   const now = Date.now();
 //   const formattedDate = now.toLocaleString(`en-US`, {
