@@ -444,121 +444,51 @@ const initSocketServer = (server) => {
       });
 
       // -------------------- Event Invite Handling --------------------
-      socket.on("event-invite", async (data) => {
-        const {
-          eventId,
-          invitees,
-          inviterId,
-          inviterName,
-          eventTitle,
-          eventType,
-          businessId,
-        } = data;
-        console.log("Received event-invite request:", data);
-
+      socket.on("event-invite", async ({ eventId, receiverId }) => {
+        const senderId = userId;
         try {
-          if (
-            !eventId ||
-            !invitees?.length ||
-            !inviterId ||
-            !inviterName ||
-            !eventTitle ||
-            !["personal", "business"].includes(eventType)
-          ) {
-            console.log("Invalid event invite data");
-            return;
-          }
-          if (inviterId !== socket.user.id) {
-            console.log("Unauthorized inviter");
-            return;
-          }
-
-          const event = await Event.findByPk(eventId);
-          if (!event) {
-            console.log("Event not found");
-            return;
-          }
-
-          if (eventType === "business" && !businessId) {
-            console.log("Business ID missing for business event");
-            return;
-          }
-
-          // Validate invitees
-          let validInvitees = [];
-          if (eventType === "personal") {
-            const friendships = await FriendShip.findAll({
-              where: {
-                [Op.or]: [
-                  {
-                    user1: inviterId,
-                    user2: { [Op.in]: invitees },
-                    status: "accepted",
-                  },
-                  {
-                    user2: inviterId,
-                    user1: { [Op.in]: invitees },
-                    status: "accepted",
-                  },
-                ],
-              },
-            });
-            validInvitees = friendships.map((f) =>
-              f.user1 === inviterId ? f.user2 : f.user1
-            );
-          } else {
-            const followers = await Follow.findAll({
-              where: { businessId, userId: { [Op.in]: invitees } },
-            });
-            validInvitees = followers.map((f) => f.userId);
-          }
-
-          const filteredInvitees = invitees.filter((id) =>
-            validInvitees.includes(id)
-          );
-          if (!filteredInvitees.length) {
-            console.log("No valid invitees found");
-            return;
-          }
-
-          console.log("📨 Creating notifications for invitees...");
-          for (const userId of filteredInvitees) {
-            // Create main notification
-            const notification = await Notification.create({
-              userId,
-              read: false,
-            });
-            // Create event notification link
-            await EventNotification.create({
-              notificationId: notification.id,
-              eventId,
-              type: "invite",
-            });
-
-            // Emit to frontend
-            io.to(`user:${userId}`).emit("event-invite-received", {
-              id: notification.id,
-              userId,
-              type: "event",
-              read: notification.read,
-              eventId,
-              inviterId,
-              inviterName,
-              eventTitle,
-              eventType,
-              businessId,
-            });
-          }
-
-          console.log(
-            `✅ Event invitations sent (count: ${filteredInvitees.length})`
-          );
-          io.to(`user:${inviterId}`).emit("event-invite-success", {
-            eventId,
-            invitedCount: filteredInvitees.length,
+          const event = await Event.findByPk(eventId, {
+            include: [{ model: CalendarItem }],
           });
-        } catch (err) {
-          console.error("🔥 Error processing event invite:", err.message);
+          if (!event)
+            throw new Error(`Event with ID ${eventId} does not exist`);
+
+          if (event.calendar_item.userId !== senderId)
+            throw new Error("Cannot send invite to event you are not an owner of");
+
+          if (event.businessId) {
+            const isFollower = await isUserFollower(receiverId, event.businessId);
+            if (!isFollower)
+              throw new Error("Cannot send invite to someone who does not follow the business");
+          } else {
+            const areFriends = await areUsersFriends(senderId, receiverId);
+            if (!areFriends)
+              throw new Error("Cannot send invite to someone you are not friends with");
+          }
+
+          const notification = await Notification.create({receiverId});
+          const eventNotification = await EventNotification.create({
+            notificationId: notification.id,
+            eventId,
+            type: "invite",
+          });
+
+          io.to(`user:${receiverId}`).emit("invite-received", {
+            id: notification.id,
+            time: notification.createdAt,
+            read: notification.read,
+            userId: notification.userId,
+            type: "invite",
+            eventTitle: event.calendar_item.title,
+            otherUser: {
+              id: senderId,
+              firstName: socket.user.firstName,
+              username: socket.user.username,
+            },
+          });
+        } catch (error) {
+          console.error("🔥 Error processing event invite:", error);
+          io.to(`user:${senderId}`).emit("invite-failed");
         }
       });
 
