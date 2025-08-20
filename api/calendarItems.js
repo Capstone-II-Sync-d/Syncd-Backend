@@ -673,7 +673,7 @@ const getEvents = async (onlyFuture) => {
     });
     const events = rawEvents.map((event) => ({
       id: event.id,
-      calendarItemId: event.calendar_item.id,
+      calendarItemId: event.calendar_item?.id,
       title: event.calendar_item.title,
       description: event.calendar_item.description,
       location: event.calendar_item.location,
