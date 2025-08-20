@@ -8,6 +8,9 @@ const {
   RequestNotification,
   Reminder,
   CalendarItem,
+  Event,
+  Attendee,
+  EventNotification,
 } = require("./database");
 const { Op } = require("sequelize");
 const jwt = require("jsonwebtoken");
@@ -33,70 +36,86 @@ const getMessagesBetweenUsers = async (userId1, userId2) => {
   });
 };
 
-const createFriendRequestNotification = async (sender, receiver, friendship) => {
+const createFriendRequestNotification = async (
+  sender,
+  receiver,
+  friendship
+) => {
   const notification = await Notification.create({ userId: receiver });
   const fr_notif = await RequestNotification.create({
     notificationId: notification.id,
     friendshipId: friendship.id,
   });
-  const senderInfo = friendship.primary.id === sender ? friendship.primary : friendship.secondary;
+  const senderInfo =
+    friendship.primary.id === sender
+      ? friendship.primary
+      : friendship.secondary;
   const notifInfo = {
     id: notification.id,
     time: notification.createdAt,
     read: notification.read,
     userId: notification.userId,
-    type: 'request',
+    type: "request",
     friendshipId: friendship.id,
     status: friendship.status,
     otherUser: {
       id: senderInfo.id,
       firstName: senderInfo.firstName,
       username: senderInfo.username,
-    }
+    },
   };
   return notifInfo;
 };
 
-
-const deleteFriendship = async ({ friendship, action, senderIsUser1, receiverId }) => {
+const deleteFriendship = async ({
+  friendship,
+  action,
+  senderIsUser1,
+  receiverId,
+}) => {
   if (!friendship)
     throw new Error("Cannot delete friendship, relation does not exist");
 
-  if ((action === 'decline') &&
-      ((senderIsUser1 && friendship.status === 'pending2') || 
-      (!senderIsUser1 && friendship.status === 'pending1')))
+  if (
+    action === "decline" &&
+    ((senderIsUser1 && friendship.status === "pending2") ||
+      (!senderIsUser1 && friendship.status === "pending1"))
+  )
     throw new Error("Cannot decline friend request, you are not the recipient");
 
-  if ((action === 'cancel') &&
-      ((senderIsUser1 && friendship.status === 'pending1') ||
-      (!senderIsUser1 && friendship.status === 'pending2')))
+  if (
+    action === "cancel" &&
+    ((senderIsUser1 && friendship.status === "pending1") ||
+      (!senderIsUser1 && friendship.status === "pending2"))
+  )
     throw new Error("Cannot cancel friend request, you are not the sender");
-  
+
   try {
     const senderId = senderIsUser1 ? friendship.user1 : friendship.user2;
     const notifs = await Notification.findAll({
-      include: [{ 
-        model: RequestNotification,
-        where: {
-          friendshipId: friendship.id,
+      include: [
+        {
+          model: RequestNotification,
+          where: {
+            friendshipId: friendship.id,
+          },
         },
-      }]
+      ],
     });
-    notifs.map(async (notif) => (await notif.destroy()));
+    notifs.map(async (notif) => await notif.destroy());
     await friendship.destroy();
     io.to(`user:${receiverId}`)
       .to(`user:${senderId}`)
       .emit("friendship-deleted", {
-      user1: senderId,
-      user2: receiverId,
-      status: "none",
-      friendshipId: friendship.id,
-    });
-
+        user1: senderId,
+        user2: receiverId,
+        status: "none",
+        friendshipId: friendship.id,
+      });
   } catch (error) {
     throw new Error(`Failed to ${action} friendship: ${error}`);
   }
-}
+};
 
 // const reminderCheck = async () => {
 //   const now = Date.now();
@@ -136,16 +155,15 @@ const initSocketServer = (server) => {
         next(new Error("Access token required!"));
         return;
       }
-      
-      const token = cookie.parse(cookies).token;      
+
+      const token = cookie.parse(cookies).token;
       if (!token) {
         next(new Error("Access token required!"));
         return;
       }
 
       jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err)
-          next(new Error("Invalid or expired token"));
+        if (err) next(new Error("Invalid or expired token"));
 
         socket.user = user;
         next();
@@ -157,8 +175,7 @@ const initSocketServer = (server) => {
       console.log(`🔗 User connected to main namespace: ${socket.id}`);
       const userId = socket.user.id;
       socket.join(`user:${userId}`); // Join personal room for private events
-      if (!onlineUsers.some((u) => u.id === userId))
-        onlineUsers.push(userId); // Add user to online users list
+      if (!onlineUsers.some((u) => u.id === userId)) onlineUsers.push(userId); // Add user to online users list
       console.log(`👤 User ${userId} connected to main namespace`);
 
       // -------------------- Message Rooms --------------------
@@ -187,97 +204,141 @@ const initSocketServer = (server) => {
       /* friendshipId: The ID of the frienship to be modified, if any                     */
       /* action: The action to take with the friendship (create, accept, decline, remove) */
       /************************************************************************************/
-      socket.on("friend-request", async({ receiverId, friendshipId, action }) => {
-        console.log(`Received Friend Request Event For Friendship #${friendshipId}`);
-        const senderId = userId;
-        const senderIsUser1 = senderId < receiverId;
-        let notification = null;
-        let status = "none";
-        let newStatus = "none";
-        try {
-          const friendship = await FriendShip.findByPk(friendshipId, {
-            include: [
-              { model: User, as: 'primary' },
-              { model: User, as: 'secondary' },
-            ],
-          });
-          status = friendship ? friendship.status : "none";
-          switch (action) {
-            /* Sender has added Receiver as a friend */
-            case 'create':
-              if (friendship)
-                throw new Error("Cannot create new friend request, relation already exists");
+      socket.on(
+        "friend-request",
+        async ({ receiverId, friendshipId, action }) => {
+          console.log(
+            `Received Friend Request Event For Friendship #${friendshipId}`
+          );
+          const senderId = userId;
+          const senderIsUser1 = senderId < receiverId;
+          let notification = null;
+          let status = "none";
+          let newStatus = "none";
+          try {
+            const friendship = await FriendShip.findByPk(friendshipId, {
+              include: [
+                { model: User, as: "primary" },
+                { model: User, as: "secondary" },
+              ],
+            });
+            status = friendship ? friendship.status : "none";
+            switch (action) {
+              /* Sender has added Receiver as a friend */
+              case "create":
+                if (friendship)
+                  throw new Error(
+                    "Cannot create new friend request, relation already exists"
+                  );
 
-              const info = {
-                user1: senderIsUser1 ? senderId : receiverId,
-                user2: senderIsUser1 ? receiverId : senderId,
-                status: senderIsUser1 ? "pending2" : "pending1",
-              }
-              const newFriendship = await FriendShip.create(info);
-              newFriendship.primary = await User.findByPk(info.user1);
-              newFriendship.secondary = await User.findByPk(info.user2);
-              notification = await createFriendRequestNotification(senderId, receiverId, newFriendship);
-              io.to(`user:${receiverId}`).emit("friend-request-received", notification);
-              newStatus = info.status;
-              friendshipId = newFriendship.id;
-              break;
-            /* Sender has accepted Receiver's friend request */
-            case 'accept':
-              if (!friendship)
-                throw new Error("Cannot accept friend request, relation does not exist");
+                const info = {
+                  user1: senderIsUser1 ? senderId : receiverId,
+                  user2: senderIsUser1 ? receiverId : senderId,
+                  status: senderIsUser1 ? "pending2" : "pending1",
+                };
+                const newFriendship = await FriendShip.create(info);
+                newFriendship.primary = await User.findByPk(info.user1);
+                newFriendship.secondary = await User.findByPk(info.user2);
+                notification = await createFriendRequestNotification(
+                  senderId,
+                  receiverId,
+                  newFriendship
+                );
+                io.to(`user:${receiverId}`).emit(
+                  "friend-request-received",
+                  notification
+                );
+                newStatus = info.status;
+                friendshipId = newFriendship.id;
+                break;
+              /* Sender has accepted Receiver's friend request */
+              case "accept":
+                if (!friendship)
+                  throw new Error(
+                    "Cannot accept friend request, relation does not exist"
+                  );
 
-              if (friendship.status === 'accepted')
-                throw new Error("Cannot accept friend request, relation status is already 'accepted'");
+                if (friendship.status === "accepted")
+                  throw new Error(
+                    "Cannot accept friend request, relation status is already 'accepted'"
+                  );
 
-              if ((senderIsUser1 && friendship.status === 'pending2') || 
-                  (!senderIsUser1 && friendship.status === 'pending1'))
-                throw new Error(`Cannot accept friend request, user ${senderId} is not the recipient`);
-              
-              await friendship.update({ status: 'accepted' });
-              notification = await createFriendRequestNotification(senderId, receiverId, friendship);
-              io.to(`user:${receiverId}`).emit("friend-request-accepted", notification);
-              io.to(`userProfile:${senderId}`)
-                .to(`userProfile:${receiverId}`)
-                .emit("friend-gained");
-              newStatus = 'accepted';
-              break;
-            /* Sender has declined Receiver's friend request */
-            case 'decline':
-              await deleteFriendship({ friendship, action, receiverId, senderIsUser1 });
-              newStatus = 'declined';
-              break;
-            /* Sender has removed the Receiver as a friend */
-            case 'remove':
-              await deleteFriendship({ friendship, action, receiverId, senderIsUser1 });
-              io.to(`userProfile:${senderId}`)
-                .to(`userProfile:${receiverId}`)
-                .emit("friend-lost");
-              newStatus = 'removed';
-              break;
-            /* Sender has canceled their friend request to Receiver */
-            case 'cancel':
-              await deleteFriendship({ friendship, action, receiverId, senderIsUser1 });
-              newStatus = 'cancelled';
-              break;
+                if (
+                  (senderIsUser1 && friendship.status === "pending2") ||
+                  (!senderIsUser1 && friendship.status === "pending1")
+                )
+                  throw new Error(
+                    `Cannot accept friend request, user ${senderId} is not the recipient`
+                  );
+
+                await friendship.update({ status: "accepted" });
+                notification = await createFriendRequestNotification(
+                  senderId,
+                  receiverId,
+                  friendship
+                );
+                io.to(`user:${receiverId}`).emit(
+                  "friend-request-accepted",
+                  notification
+                );
+                io.to(`userProfile:${senderId}`)
+                  .to(`userProfile:${receiverId}`)
+                  .emit("friend-gained");
+                newStatus = "accepted";
+                break;
+              /* Sender has declined Receiver's friend request */
+              case "decline":
+                await deleteFriendship({
+                  friendship,
+                  action,
+                  receiverId,
+                  senderIsUser1,
+                });
+                newStatus = "declined";
+                break;
+              /* Sender has removed the Receiver as a friend */
+              case "remove":
+                await deleteFriendship({
+                  friendship,
+                  action,
+                  receiverId,
+                  senderIsUser1,
+                });
+                io.to(`userProfile:${senderId}`)
+                  .to(`userProfile:${receiverId}`)
+                  .emit("friend-lost");
+                newStatus = "removed";
+                break;
+              /* Sender has canceled their friend request to Receiver */
+              case "cancel":
+                await deleteFriendship({
+                  friendship,
+                  action,
+                  receiverId,
+                  senderIsUser1,
+                });
+                newStatus = "cancelled";
+                break;
+            }
+          } catch (error) {
+            console.error(error);
+            io.to(`user:${senderId}`).emit("friendship-error", {
+              status,
+              friendshipId,
+              action,
+              error,
+            });
+            return;
           }
-        } catch (error) {
-          console.error(error);
-          io.to(`user:${senderId}`).emit("friendship-error", { 
-            status,
-            friendshipId,
-            action,
-            error,
-          });
-          return;
-        }
 
-        io.to(`user:${senderId}`).emit("friend-request-success", {
-          newStatus,
-          friendshipId,
-          receiverId,
-          action,
-        });
-      });
+          io.to(`user:${senderId}`).emit("friend-request-success", {
+            newStatus,
+            friendshipId,
+            receiverId,
+            action,
+          });
+        }
+      );
 
       socket.on("leave-message-room", (roomName) => {
         socket.leave(roomName);
@@ -285,7 +346,8 @@ const initSocketServer = (server) => {
       });
 
       // Sending a new message
-      socket.on("sending-message",
+      socket.on(
+        "sending-message",
         async (messageText, user, userClicked, room) => {
           if (!user?.id || !userClicked?.id || !room) return;
 
@@ -349,6 +411,196 @@ const initSocketServer = (server) => {
             success: false,
             message: "Action failed",
           });
+        }
+      });
+
+      // -------------------- Event Invite Handling --------------------
+      socket.on("event-invite", async (data) => {
+        const {
+          eventId,
+          invitees,
+          inviterId,
+          inviterName,
+          eventTitle,
+          eventType,
+          businessId,
+        } = data;
+        console.log("Received event-invite request:", data);
+
+        try {
+          if (
+            !eventId ||
+            !invitees?.length ||
+            !inviterId ||
+            !inviterName ||
+            !eventTitle ||
+            !["personal", "business"].includes(eventType)
+          ) {
+            console.log("Invalid event invite data");
+            return;
+          }
+          if (inviterId !== socket.user.id) {
+            console.log("Unauthorized inviter");
+            return;
+          }
+
+          const event = await Event.findByPk(eventId);
+          if (!event) {
+            console.log("Event not found");
+            return;
+          }
+
+          if (eventType === "business" && !businessId) {
+            console.log("Business ID missing for business event");
+            return;
+          }
+
+          // Validate invitees
+          let validInvitees = [];
+          if (eventType === "personal") {
+            const friendships = await FriendShip.findAll({
+              where: {
+                [Op.or]: [
+                  {
+                    user1: inviterId,
+                    user2: { [Op.in]: invitees },
+                    status: "accepted",
+                  },
+                  {
+                    user2: inviterId,
+                    user1: { [Op.in]: invitees },
+                    status: "accepted",
+                  },
+                ],
+              },
+            });
+            validInvitees = friendships.map((f) =>
+              f.user1 === inviterId ? f.user2 : f.user1
+            );
+          } else {
+            const followers = await Follow.findAll({
+              where: { businessId, userId: { [Op.in]: invitees } },
+            });
+            validInvitees = followers.map((f) => f.userId);
+          }
+
+          const filteredInvitees = invitees.filter((id) =>
+            validInvitees.includes(id)
+          );
+          if (!filteredInvitees.length) {
+            console.log("No valid invitees found");
+            return;
+          }
+
+          console.log("📨 Creating notifications for invitees...");
+          for (const userId of filteredInvitees) {
+            // Create main notification
+            const notification = await Notification.create({
+              userId,
+              read: false,
+            });
+            // Create event notification link
+            await EventNotification.create({
+              notificationId: notification.id,
+              eventId,
+              type: "invite",
+            });
+
+            // Emit to frontend
+            io.to(`user:${userId}`).emit("event-invite-received", {
+              id: notification.id,
+              userId,
+              type: "event",
+              read: notification.read,
+              eventId,
+              inviterId,
+              inviterName,
+              eventTitle,
+              eventType,
+              businessId,
+            });
+          }
+
+          console.log(
+            `✅ Event invitations sent (count: ${filteredInvitees.length})`
+          );
+          io.to(`user:${inviterId}`).emit("event-invite-success", {
+            eventId,
+            invitedCount: filteredInvitees.length,
+          });
+        } catch (err) {
+          console.error("🔥 Error processing event invite:", err.message);
+        }
+      });
+
+      // -------------------- Event Response Handling --------------------
+      socket.on("event-response", async (data) => {
+        const { eventId, userId, action } = data;
+        console.log("📩 Received event-response:", data);
+
+        try {
+          if (!eventId || !userId || !["accept", "decline"].includes(action)) {
+            console.log("Invalid response data");
+            return;
+          }
+          if (userId !== socket.user.id) {
+            console.log("Unauthorized user");
+            return;
+          }
+
+          const event = await Event.findByPk(eventId);
+          if (!event) {
+            console.log("Event not found");
+            return;
+          }
+
+          const invitation = await EventNotification.findOne({
+            where: { eventId },
+            include: [{ model: Notification, where: { userId } }],
+          });
+
+          if (!invitation) {
+            console.log("User not invited");
+            return;
+          }
+
+          // Mark invitation as read
+          await invitation.Notification.update({ read: true });
+
+          // Create attendee record
+          await Attendee.create({ eventId, userId, status: action });
+
+          // Notify inviter
+          const notification = await Notification.create({
+            userId: event.inviterId,
+            read: false,
+          });
+          await EventNotification.create({
+            notificationId: notification.id,
+            eventId,
+            type: "invite",
+          });
+
+          io.to(`user:${event.inviterId}`).emit("event-response-received", {
+            id: notification.id,
+            userId: event.inviterId,
+            type: "event-response",
+            eventId,
+            responderId: userId,
+            responderName: socket.user.username,
+            response: action,
+            eventTitle: event.title,
+            eventType: event.businessId ? "business" : "personal",
+            businessId: event.businessId,
+          });
+
+          console.log("✅ Response processed successfully");
+          io.to(`user:${userId}`).emit("event-response-success", {
+            eventId,
+            action,
+          });
+        } catch (err) {
+          console.error("Error processing event response:", err.message);
         }
       });
 
