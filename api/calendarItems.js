@@ -352,7 +352,7 @@ router.post("/business/attending", authenticateJWT, async (req, res) => {
   // Validate sourceEventId
   //Was getting error that it wasn't a number
   if (!sourceEventId || isNaN(Number(sourceEventId))) {
-    return res.status(400).json({ error: "Invalid sourceEventId" });
+    return res.status(405).json({ error: "Invalid sourceEventId" });
   }
 
   try {
@@ -367,7 +367,7 @@ router.post("/business/attending", authenticateJWT, async (req, res) => {
 
     // Ensure it has an associated Event
     if (!sourceItem.event) {
-      return res.status(400).json({ error: "Source item is not an event" });
+      return res.status(403).json({ error: "Source item is not an event" });
     }
 
     // Check if the user is already attending
@@ -376,7 +376,7 @@ router.post("/business/attending", authenticateJWT, async (req, res) => {
     });
 
     if (existingAttendee) {
-      return res.status(400).json({ error: "Already attending this event" });
+      return res.status(402).json({ error: "Already attending this event" });
     }
 
     // Create attendee record
@@ -673,6 +673,7 @@ const getEvents = async (onlyFuture) => {
     });
     const events = rawEvents.map((event) => ({
       id: event.id,
+      calendarItemId: event.calendar_item?.id,
       title: event.calendar_item.title,
       description: event.calendar_item.description,
       location: event.calendar_item.location,
