@@ -143,6 +143,9 @@ router.get("/me/friends", authenticateJWT, async (req, res) => {
       status: friendship.status,
       user:
         friendship.user1 === userId ? friendship.secondary : friendship.primary,
+      pendingUser:
+        (friendship.status === 'pending1' && friendship.user1 === userId) ||
+        (friendship.status === 'pending2' && friendship.user2 === userId)
     }));
 
     // Send back status of 200 if everything goes through and send the friends
